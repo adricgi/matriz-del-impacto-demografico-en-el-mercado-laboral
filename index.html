@@ -114,14 +114,25 @@
     /* ==========================================
        TARJETAS 3D FLIP Y COLORES DE MATRIZ FODA
        ========================================== */
+    @keyframes flipCardIn {
+      0% {
+        transform: perspective(1000px) rotateY(-85deg);
+        opacity: 0;
+      }
+      100% {
+        transform: none;
+        opacity: 1;
+      }
+    }
+
     .foda-flip-card {
-      perspective: 1000px;
       position: relative;
       cursor: pointer;
-      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      transition: transform 0.25s ease,
                   opacity 0.28s ease,
                   filter 0.28s ease,
-                  box-shadow 0.3s ease;
+                  box-shadow 0.25s ease;
+      -webkit-font-smoothing: antialiased;
     }
 
     .foda-flip-card:hover {
@@ -131,31 +142,24 @@
     .foda-flip-inner {
       position: relative;
       width: 100%;
-      transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
-      transform-style: preserve-3d;
     }
 
     .foda-flip-card.is-flipped {
       z-index: 30;
-      transform: translateY(-4px) scale(1.02);
-    }
-
-    .foda-flip-card.is-flipped .foda-flip-inner {
-      transform: rotateY(180deg);
+      transform: translateY(-3px);
     }
 
     .foda-flip-front,
     .foda-flip-back {
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
       border-radius: 0.6rem;
-      transition: opacity 0.25s ease;
     }
 
-    /* Cuando no está volteada, el frente define la altura compacta */
+    /* Cuando no está volteada, el frente define la altura compacta con texto vectorial nítido */
     .foda-flip-card:not(.is-flipped) .foda-flip-front {
       position: relative;
       opacity: 1;
+      transform: none;
+      animation: flipCardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
 
     .foda-flip-card:not(.is-flipped) .foda-flip-back {
@@ -163,11 +167,10 @@
       inset: 0;
       opacity: 0;
       pointer-events: none;
-      transform: rotateY(180deg);
       overflow: hidden;
     }
 
-    /* Cuando se hace clic y se voltea, el reverso define la altura completa */
+    /* Cuando se hace clic y se voltea, el reverso gira en 3D y termina en transform: none para máxima nitidez */
     .foda-flip-card.is-flipped .foda-flip-front {
       position: absolute;
       inset: 0;
@@ -179,7 +182,7 @@
       position: relative;
       opacity: 1;
       pointer-events: auto;
-      transform: rotateY(180deg);
+      animation: flipCardIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
       box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.22), 0 0 0 2px #0f172a;
     }
 
