@@ -297,10 +297,41 @@
          PÁGINA 1: PORTADA / DASHBOARD PRINCIPAL
          ========================================== -->
     <section id="page-1" class="spa-page active-page visible-page py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200/90 p-6 sm:p-10 lg:p-12">
+      <div class="relative overflow-hidden max-w-5xl mx-auto bg-sky-50/50 rounded-2xl shadow-sm border border-slate-200/90 p-6 sm:p-10 lg:p-12">
+
+        <!-- Fondo de ondas celestes en SVG (Controla la transparencia general cambiando el valor 0.90 en style="opacity: 0.90;") -->
+        <svg
+          style="opacity: 0.90;"
+          class="pointer-events-none absolute inset-0 w-full h-full object-cover z-0"
+          viewBox="0 0 1200 800"
+          preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="ola-celeste-1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#bae6fd" stop-opacity="0.7" />
+              <stop offset="50%" stop-color="#e0f2fe" stop-opacity="0.3" />
+              <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0.6" />
+            </linearGradient>
+            <linearGradient id="ola-celeste-2" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.5" />
+              <stop offset="55%" stop-color="#f0f9ff" stop-opacity="0.85" />
+              <stop offset="100%" stop-color="#bae6fd" stop-opacity="0.65" />
+            </linearGradient>
+            <linearGradient id="ola-celeste-3" x1="0%" y1="50%" x2="100%" y2="50%">
+              <stop offset="0%" stop-color="#e0f2fe" stop-opacity="0.6" />
+              <stop offset="50%" stop-color="#ffffff" stop-opacity="0.9" />
+              <stop offset="100%" stop-color="#e0f2fe" stop-opacity="0.6" />
+            </linearGradient>
+          </defs>
+          <!-- Capa base suave -->
+          <rect width="1200" height="800" fill="url(#ola-celeste-3)" />
+          <!-- Onda orgánica superior -->
+          <path fill="url(#ola-celeste-1)" d="M0,0 L1200,0 L1200,370 C960,490 770,180 470,330 C220,455 110,250 0,355 Z" />
+          <!-- Onda orgánica inferior cruzada -->
+          <path fill="url(#ola-celeste-2)" d="M0,800 L1200,800 L1200,450 C1010,330 740,630 420,465 C185,345 95,545 0,435 Z" />
+        </svg>
 
         <!-- Cabecera institucional con logos de la ULA y del IIA -->
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 pb-8 border-b border-slate-100">
+        <div class="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6 pb-8 border-b border-slate-200/70">
           <!-- Logo ULA -->
           <div class="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center shrink-0">
             <img
@@ -332,7 +363,7 @@
         </div>
 
         <!-- Título General, Subtítulo y Datos Académicos -->
-        <div class="py-8 sm:py-10 text-center max-w-3xl mx-auto space-y-4">
+        <div class="relative z-10 py-8 sm:py-10 text-center max-w-3xl mx-auto space-y-4">
           <h1 class="serif-title text-2xl sm:text-4xl font-bold text-slate-900 leading-tight">
             Matriz del Impacto Demográfico en el Mercado Laboral
           </h1>
@@ -352,9 +383,9 @@
         </div>
 
         <!-- Cuatro botones prominentes de navegación a las secciones -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+        <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
           <button onclick="navigateTo(2)"
-            class="group text-left p-5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50/60 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
+            class="group text-left p-5 rounded-xl border border-slate-200/90 bg-white/85 backdrop-blur-xs hover:bg-emerald-50/90 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
             <span class="w-9 h-9 rounded-lg bg-emerald-700 text-white font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               1
             </span>
@@ -364,7 +395,7 @@
           </button>
 
           <button onclick="navigateTo(3)"
-            class="group text-left p-5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50/60 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
+            class="group text-left p-5 rounded-xl border border-slate-200/90 bg-white/85 backdrop-blur-xs hover:bg-emerald-50/90 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
             <span class="w-9 h-9 rounded-lg bg-emerald-700 text-white font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               2
             </span>
@@ -374,7 +405,7 @@
           </button>
 
           <button onclick="navigateTo(4)"
-            class="group text-left p-5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50/60 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
+            class="group text-left p-5 rounded-xl border border-slate-200/90 bg-white/85 backdrop-blur-xs hover:bg-emerald-50/90 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
             <span class="w-9 h-9 rounded-lg bg-emerald-700 text-white font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               3
             </span>
@@ -384,7 +415,7 @@
           </button>
 
           <button onclick="navigateTo(5)"
-            class="group text-left p-5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50/60 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
+            class="group text-left p-5 rounded-xl border border-slate-200/90 bg-white/85 backdrop-blur-xs hover:bg-emerald-50/90 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
             <span class="w-9 h-9 rounded-lg bg-emerald-700 text-white font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               4
             </span>
@@ -769,7 +800,7 @@
                   <!-- Celda Esquina (Fila 1, Columna 1) con foto de Caracas en marca de agua clara -->
                   <th class="w-[24%] p-4 sm:p-5 relative overflow-hidden bg-slate-100 text-slate-900 align-middle">
                     <img
-                      src="https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?auto=format&fit=crop&w=900&q=80"
+                      src="https://as2.ftcdn.net/v2/jpg/05/91/90/27/1000_F_591902734_LLzXlShronXLmfXooeuxUTq3yAZwK31W.jpg"
                       alt="Caracas en marca de agua"
                       class="absolute inset-0 w-full h-full object-cover opacity-85 pointer-events-none scale-105"
                       onerror="this.style.display='none'"
@@ -1469,7 +1500,7 @@
                   <!-- Celda Esquina (Fila 1, Columna 1) con foto de Mérida en marca de agua clara -->
                   <th class="w-[24%] p-4 sm:p-5 relative overflow-hidden bg-slate-100 text-slate-900 align-middle">
                     <img
-                      src="https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=900&q=80"
+                      src="https://mrm-style.com/en/wp-content/uploads/2025/10/Letters-from-Venezuela-Merida-the-city-on-the-crown-of-the-Andes.-Mr.M-by-Marko-Tadic-mrmbymarkotadic35-768x557.jpg"
                       alt="Mérida en marca de agua"
                       class="absolute inset-0 w-full h-full object-cover opacity-85 pointer-events-none scale-105"
                       onerror="this.style.display='none'"
