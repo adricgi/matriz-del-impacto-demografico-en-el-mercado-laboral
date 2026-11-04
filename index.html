@@ -1,0 +1,2366 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerencia de los Recursos Humanos | Matriz del Impacto Demográfico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-serif: 'Merriweather', Georgia, serif;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: #f8fafc;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+
+    .serif-title {
+      font-family: var(--font-serif);
+    }
+
+    /* Transiciones de paso de página y desvanecimiento del SPA */
+    .spa-page {
+      display: none;
+      opacity: 0;
+      transform: translateY(12px) scale(0.992);
+      transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: opacity, transform;
+    }
+
+    .spa-page.active-page {
+      display: block;
+    }
+
+    .spa-page.visible-page {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Estados del Mapa SVG de Venezuela */
+    .ve-state {
+      fill: #e2e8f0;
+      stroke: #cbd5e1;
+      stroke-width: 1.5;
+      transition: fill 0.4s ease, stroke 0.4s ease, stroke-width 0.4s ease, filter 0.4s ease, transform 0.4s ease;
+    }
+
+    .ve-state-label {
+      opacity: 0;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      pointer-events: none;
+    }
+
+    /* Iluminación verde tenue con borde iluminado al hacer hover en cada región */
+    .highlight-central .state-central,
+    .highlight-andina .state-andina {
+      fill: #dcfce7;
+      stroke: #22c55e;
+      stroke-width: 2.8;
+      filter: drop-shadow(0 0 12px rgba(34, 197, 94, 0.65));
+    }
+
+    .highlight-central .label-central,
+    .highlight-andina .label-andina {
+      opacity: 1;
+    }
+
+    /* Superíndices interactivos */
+    .cite-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #15803d;
+      background-color: #dcfce7;
+      border: 1px solid #86efac;
+      border-radius: 9999px;
+      padding: 0 0.36rem;
+      margin-left: 0.12rem;
+      line-height: 1.25;
+      vertical-align: super;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .cite-link:hover {
+      background-color: #16a34a;
+      color: #ffffff;
+      transform: translateY(-1px) scale(1.08);
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35);
+    }
+
+    /* Resaltado temporal de nota al pie */
+    @keyframes footnotePulse {
+      0% { background-color: #bbf7d0; transform: scale(1.01); }
+      70% { background-color: #dcfce7; transform: scale(1.005); }
+      100% { background-color: transparent; transform: scale(1); }
+    }
+
+    .footnote-highlight {
+      animation: footnotePulse 2.4s ease-out forwards;
+      border-color: #22c55e !important;
+    }
+
+    /* ==========================================
+       TARJETAS 3D FLIP Y COLORES DE MATRIZ FODA
+       ========================================== */
+    .foda-flip-card {
+      perspective: 1000px;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                  opacity 0.28s ease,
+                  filter 0.28s ease,
+                  box-shadow 0.3s ease;
+    }
+
+    .foda-flip-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .foda-flip-inner {
+      position: relative;
+      width: 100%;
+      transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+      transform-style: preserve-3d;
+    }
+
+    .foda-flip-card.is-flipped {
+      z-index: 30;
+      transform: translateY(-4px) scale(1.02);
+    }
+
+    .foda-flip-card.is-flipped .foda-flip-inner {
+      transform: rotateY(180deg);
+    }
+
+    .foda-flip-front,
+    .foda-flip-back {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 0.6rem;
+      transition: opacity 0.25s ease;
+    }
+
+    /* Cuando no está volteada, el frente define la altura compacta */
+    .foda-flip-card:not(.is-flipped) .foda-flip-front {
+      position: relative;
+      opacity: 1;
+    }
+
+    .foda-flip-card:not(.is-flipped) .foda-flip-back {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transform: rotateY(180deg);
+      overflow: hidden;
+    }
+
+    /* Cuando se hace clic y se voltea, el reverso define la altura completa */
+    .foda-flip-card.is-flipped .foda-flip-front {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .foda-flip-card.is-flipped .foda-flip-back {
+      position: relative;
+      opacity: 1;
+      pointer-events: auto;
+      transform: rotateY(180deg);
+      box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.22), 0 0 0 2px #0f172a;
+    }
+
+    /* Interactividad de resaltado cruzado en las Matrices FODA */
+    .foda-factor-item {
+      border-left: 3px solid transparent;
+    }
+
+    /* Cuando hay una estrategia activa en la matriz, atenuar las no involucradas */
+    .matrix-has-selection .foda-factor-item:not(.factor-active):not(.is-flipped) {
+      opacity: 0.3;
+      filter: grayscale(40%);
+    }
+
+    .matrix-has-selection .foda-strategy-item:not(.strategy-active):not(.is-flipped) {
+      opacity: 0.42;
+    }
+
+    /* Factor iluminado (Fortaleza, Debilidad, Oportunidad o Amenaza origen) */
+    .foda-factor-item.factor-active .foda-flip-front,
+    .foda-factor-item.factor-active .foda-flip-back {
+      background-color: #ffffff !important;
+      border-color: #16a34a !important;
+      box-shadow: 0 4px 14px -2px rgba(22, 163, 74, 0.35), 0 0 0 2px #16a34a !important;
+    }
+
+    .foda-factor-item.factor-active {
+      transform: translateX(3px) translateY(-1px);
+      z-index: 20;
+    }
+
+    .foda-factor-item.factor-active .factor-badge {
+      background-color: #16a34a !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 8px rgba(22, 163, 74, 0.5);
+    }
+
+    /* Estrategia iluminada */
+    .foda-strategy-item.strategy-active .foda-flip-front {
+      background-color: #ffffff !important;
+      box-shadow: 0 6px 16px -3px rgba(15, 23, 42, 0.18), 0 0 0 2px #15803d !important;
+    }
+
+    /* Tamaño de letra aumentado para las estrategias centrales en las matrices */
+    .foda-strategy-item .foda-flip-front > span:first-child {
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    .foda-strategy-item .foda-flip-back {
+      font-size: 0.925rem;
+      line-height: 1.45;
+    }
+
+    /* Scrollbar sutil */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-slate-50 text-slate-800 selection:bg-emerald-100 selection:text-emerald-900">
+
+  <!-- HEADER UNIFICADO (Mínimo y consistente en las 5 páginas) -->
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+      <span class="text-sm sm:text-base font-semibold tracking-tight text-slate-800 truncate">
+        Gerencia de los Recursos Humanos
+      </span>
+
+      <nav aria-label="Navegación principal" class="flex items-center gap-1 sm:gap-2">
+        <!-- Casita de Home (Página 1) -->
+        <button onclick="navigateTo(1)" id="nav-btn-1" title="Inicio"
+          class="nav-anchor p-2 rounded-lg text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/80 transition-colors flex items-center justify-center">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+          </svg>
+        </button>
+
+        <!-- Enlaces cortos a las otras 4 páginas -->
+        <button onclick="navigateTo(2)" id="nav-btn-2"
+          class="nav-anchor px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/80 transition-colors">
+          Diagnóstico
+        </button>
+        <button onclick="navigateTo(3)" id="nav-btn-3"
+          class="nav-anchor px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/80 transition-colors">
+          FODA Central
+        </button>
+        <button onclick="navigateTo(4)" id="nav-btn-4"
+          class="nav-anchor px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/80 transition-colors">
+          FODA Andina
+        </button>
+        <button onclick="navigateTo(5)" id="nav-btn-5"
+          class="nav-anchor px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/80 transition-colors">
+          Conclusión
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL DE LAS 5 PÁGINAS DEL SPA -->
+  <main class="flex-grow flex flex-col justify-center">
+
+    <!-- ==========================================
+         PÁGINA 1: PORTADA / DASHBOARD PRINCIPAL
+         ========================================== -->
+    <section id="page-1" class="spa-page active-page visible-page py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200/90 p-6 sm:p-10 lg:p-12">
+
+        <!-- Cabecera institucional con logos de la ULA y del IIA -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 pb-8 border-b border-slate-100">
+          <!-- Logo ULA -->
+          <div class="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center shrink-0">
+            <img
+              src="https://adrianagonzalez9.wordpress.com/wp-content/uploads/2026/10/logo-ula.jpg"
+              alt="Logo Universidad de Los Andes"
+              class="max-h-24 sm:max-h-28 w-auto object-contain rounded"
+              onerror="this.onerror=null; this.src='https://placehold.co/160x160/f8fafc/0f172a?text=ULA';"
+            />
+          </div>
+
+          <!-- Membrete institucional -->
+          <div class="text-center space-y-1">
+            <p class="text-sm sm:text-base font-bold tracking-wide uppercase text-slate-800">Universidad de Los Andes</p>
+            <p class="text-xs sm:text-sm font-medium text-slate-600">Facultad de Ciencias Económicas y Sociales</p>
+            <p class="text-xs sm:text-sm font-medium text-slate-600">Instituto de Investigaciones en Administración</p>
+            <p class="text-xs sm:text-sm font-semibold text-emerald-800 pt-1">Maestría en Administración, Mención Gerencia</p>
+            <p class="text-xs sm:text-sm text-slate-500">Gerencia de los Recursos Humanos</p>
+          </div>
+
+          <!-- Logo IIA -->
+          <div class="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center shrink-0">
+            <img
+              src="https://adrianagonzalez9.wordpress.com/wp-content/uploads/2026/10/logo-iia.jpg"
+              alt="Logo Instituto de Investigaciones en Administración"
+              class="max-h-24 sm:max-h-28 w-auto object-contain rounded"
+              onerror="this.onerror=null; this.src='https://placehold.co/160x160/f8fafc/0f172a?text=IIA';"
+            />
+          </div>
+        </div>
+
+        <!-- Título General, Subtítulo y Datos Académicos -->
+        <div class="py-8 sm:py-10 text-center max-w-3xl mx-auto space-y-4">
+          <h1 class="serif-title text-2xl sm:text-4xl font-bold text-slate-900 leading-tight">
+            Matriz del Impacto Demográfico en el Mercado Laboral
+          </h1>
+          <h2 class="text-base sm:text-xl font-medium text-emerald-800">
+            Análisis Comparativo de las Regiones Central y Andina de Venezuela
+          </h2>
+
+          <div class="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-12 text-xs sm:text-sm text-slate-600 border-t border-slate-100 max-w-xl mx-auto">
+            <div>
+              <span class="font-semibold text-slate-800">Autora:</span> Gonzalez Ibarra, Adriana Carolina<br />
+              <span class="font-semibold text-slate-800">C.I.:</span> V-15.756.922
+            </div>
+            <div>
+              <span class="font-semibold text-slate-800">Profesora:</span> Dra. Rey García, Ronaldi Teresa
+            </div>
+          </div>
+        </div>
+
+        <!-- Cuatro botones prominentes de navegación a las secciones -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+          <button onclick="navigateTo(2)"
+            class="group text-left p-5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50/60 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
+            <span class="w-9 h-9 rounded-lg bg-emerald-700 text-white font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              1
+            </span>
+            <span class="text-sm sm:text-base font-semibold text-slate-800 group-hover:text-emerald-950 leading-snug">
+              Cuadro Comparativo: Diagnóstico Situacional del Impacto Demográfico en el Talento Humano
+            </span>
+          </button>
+
+          <button onclick="navigateTo(3)"
+            class="group text-left p-5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50/60 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
+            <span class="w-9 h-9 rounded-lg bg-emerald-700 text-white font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              2
+            </span>
+            <span class="text-sm sm:text-base font-semibold text-slate-800 group-hover:text-emerald-950 leading-snug">
+              Matriz Situacional FODA Aplicada al Talento Humano: Región Central
+            </span>
+          </button>
+
+          <button onclick="navigateTo(4)"
+            class="group text-left p-5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50/60 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
+            <span class="w-9 h-9 rounded-lg bg-emerald-700 text-white font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              3
+            </span>
+            <span class="text-sm sm:text-base font-semibold text-slate-800 group-hover:text-emerald-950 leading-snug">
+              Matriz Situacional FODA Aplicada al Talento Humano: Región Andina
+            </span>
+          </button>
+
+          <button onclick="navigateTo(5)"
+            class="group text-left p-5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50/60 hover:border-emerald-400 transition-all duration-300 shadow-sm hover:shadow flex items-start gap-4">
+            <span class="w-9 h-9 rounded-lg bg-emerald-700 text-white font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              4
+            </span>
+            <span class="text-sm sm:text-base font-semibold text-slate-800 group-hover:text-emerald-950 leading-snug">
+              Conclusión desde la Gestión del Talento Humano
+            </span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PÁGINA 2: CUADRO COMPARATIVO + MAPA DE VENEZUELA + NOTAS
+         ========================================== -->
+    <section id="page-2" class="spa-page py-8 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto space-y-8">
+
+        <div class="text-center max-w-4xl mx-auto">
+          <h2 class="serif-title text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">
+            Cuadro Comparativo: Diagnóstico Situacional del Impacto Demográfico en el Talento Humano
+          </h2>
+        </div>
+
+        <!-- Contenedor de la Tabla con Mapa Político-Territorial de Venezuela en SVG de fondo -->
+        <div id="comparative-map-wrapper" class="relative rounded-2xl border border-slate-200 bg-white/80 shadow-sm overflow-hidden">
+
+          <!-- Mapa de Venezuela con división político-territorial en el fondo -->
+          <div class="pointer-events-none absolute inset-0 flex items-center justify-center z-0 opacity-75 p-4">
+            <svg id="venezuela-svg-map" viewBox="0 0 1000 780" class="w-full h-full max-w-5xl max-h-[720px] object-contain">
+              <defs>
+                <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="5" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+
+              <!-- Entidades Federales de Venezuela (Gris claro base) -->
+              <!-- Zulia -->
+              <path class="ve-state" d="M 155,145 L 195,120 L 210,165 L 185,205 L 190,255 L 220,255 L 228,285 L 180,315 L 140,295 L 130,230 L 145,185 Z" />
+              <!-- Falcón -->
+              <path class="ve-state" d="M 210,165 L 265,135 L 280,105 L 305,112 L 292,142 L 340,160 L 345,195 L 280,210 L 228,198 Z" />
+              <!-- Lara -->
+              <path class="ve-state" d="M 228,198 L 280,210 L 325,205 L 320,248 L 268,262 L 235,245 Z" />
+              <!-- Yaracuy -->
+              <path class="ve-state" d="M 325,205 L 345,195 L 365,202 L 352,238 L 320,248 Z" />
+
+              <!-- REGIÓN ANDINA: Táchira, Mérida y Trujillo -->
+              <!-- Trujillo -->
+              <path class="ve-state state-andina" d="M 228,245 L 268,262 L 262,298 L 225,295 L 218,268 Z" />
+              <!-- Mérida -->
+              <path class="ve-state state-andina" d="M 185,295 L 225,295 L 252,308 L 228,348 L 188,345 L 178,315 Z" />
+              <!-- Táchira -->
+              <path class="ve-state state-andina" d="M 145,320 L 188,345 L 198,382 L 155,392 L 135,358 Z" />
+
+              <!-- REGIÓN CENTRAL: Carabobo, Aragua y Distrito Capital (Caracas) -->
+              <!-- Carabobo -->
+              <path class="ve-state state-central" d="M 365,202 L 392,202 L 392,238 L 352,238 Z" />
+              <!-- Aragua -->
+              <path class="ve-state state-central" d="M 392,202 L 422,200 L 428,248 L 392,238 Z" />
+              <!-- Distrito Capital (Caracas) -->
+              <path class="ve-state state-central" d="M 422,200 L 448,198 L 448,218 L 422,218 Z" />
+
+              <!-- Miranda y La Guaira -->
+              <path class="ve-state" d="M 448,198 L 485,202 L 480,240 L 428,248 L 422,218 L 448,218 Z" />
+              <!-- Cojedes -->
+              <path class="ve-state" d="M 320,248 L 385,238 L 385,295 L 330,298 Z" />
+              <!-- Portuguesa -->
+              <path class="ve-state" d="M 268,262 L 320,248 L 330,298 L 275,315 L 252,308 Z" />
+              <!-- Barinas -->
+              <path class="ve-state" d="M 228,348 L 275,315 L 355,318 L 345,365 L 205,375 L 198,352 Z" />
+              <!-- Apure -->
+              <path class="ve-state" d="M 198,382 L 345,365 L 435,378 L 448,445 L 330,455 L 185,425 Z" />
+              <!-- Guárico -->
+              <path class="ve-state" d="M 385,238 L 480,240 L 515,275 L 505,375 L 435,378 L 385,335 Z" />
+              <!-- Anzoátegui -->
+              <path class="ve-state" d="M 480,240 L 555,215 L 605,255 L 595,365 L 505,375 L 515,275 Z" />
+              <!-- Sucre -->
+              <path class="ve-state" d="M 555,215 L 655,195 L 665,215 L 605,235 L 565,230 Z" />
+              <!-- Nueva Esparta -->
+              <path class="ve-state" d="M 580,175 L 602,172 L 598,186 L 578,185 Z" />
+              <!-- Monagas -->
+              <path class="ve-state" d="M 595,235 L 655,230 L 665,335 L 595,355 Z" />
+              <!-- Delta Amacuro -->
+              <path class="ve-state" d="M 655,230 L 725,248 L 745,335 L 665,335 Z" />
+              <!-- Bolívar -->
+              <path class="ve-state" d="M 448,445 L 505,375 L 665,335 L 735,355 L 745,555 L 615,595 L 525,525 L 455,495 Z" />
+              <!-- Amazonas -->
+              <path class="ve-state" d="M 448,445 L 525,525 L 565,695 L 455,715 L 415,585 L 435,495 Z" />
+              <!-- Guayana Esequiba (Zona en Reclamación) -->
+              <path class="ve-state" stroke-dasharray="4 3" d="M 735,355 L 795,335 L 825,525 L 745,555 Z" />
+
+              <!-- Etiquetas sutiles de las regiones al iluminarse -->
+              <g class="ve-state-label label-central">
+                <rect x="335" y="150" width="175" height="34" rx="8" fill="#166534" opacity="0.92" />
+                <text x="422" y="172" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">
+                  Caracas • Aragua • Carabobo
+                </text>
+              </g>
+              <g class="ve-state-label label-andina">
+                <rect x="95" y="405" width="180" height="34" rx="8" fill="#166534" opacity="0.92" />
+                <text x="185" y="427" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">
+                  Táchira • Mérida • Trujillo
+                </text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- Tabla Comparativa superpuesta al mapa -->
+          <div class="relative z-10 overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200/90 bg-slate-900/90 text-white">
+                  <th class="p-4 sm:p-5 text-xs sm:text-sm font-semibold uppercase tracking-wider w-1/5">
+                    Variable Analítica
+                  </th>
+                  <th
+                    onmouseenter="setMapHighlight('central')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 text-xs sm:text-sm font-semibold uppercase tracking-wider w-2/5 border-l border-slate-700 transition-colors hover:bg-emerald-950/90 cursor-pointer">
+                    Zona 1: Región Central (Caracas, Maracay y Valencia)
+                  </th>
+                  <th
+                    onmouseenter="setMapHighlight('andina')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 text-xs sm:text-sm font-semibold uppercase tracking-wider w-2/5 border-l border-slate-700 transition-colors hover:bg-emerald-950/90 cursor-pointer">
+                    Zona 2: Región Andina (Táchira, Mérida y Trujillo)
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200/80 text-xs sm:text-sm leading-relaxed">
+                <!-- FILA 1: FORTALEZAS -->
+                <tr class="bg-white/65 backdrop-blur-[1px]">
+                  <td class="p-4 sm:p-5 align-top font-bold text-slate-900 bg-slate-100/75">
+                    FORTALEZAS (F)
+                    <span class="block font-normal text-xs text-slate-600 mt-1">
+                      (Capacidades y atributos internos de la fuerza laboral regional)
+                    </span>
+                  </td>
+                  <td
+                    onmouseenter="setMapHighlight('central')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 align-top space-y-2.5 border-l border-slate-200/80 hover:bg-emerald-50/40 transition-colors">
+                    <p><strong>1. Masa crítica y volumen demográfico activo:</strong> A pesar de la emigración nacional, el eje central retiene la mayor densidad de Población Económicamente Activa (PEA) del país, facilitando el reclutamiento en volumen para operaciones comerciales, logísticas y de servicios.<button onclick="scrollToFootnote(1)" class="cite-link">1</button></p>
+                    <p><strong>2. Concentración de talento gerencial y corporativo:</strong> Presencia de profesionales con experiencia en banca, finanzas, mercadeo, tecnología, derecho corporativo y cadenas de suministro, formados tanto en universidades de élite (UCV, USB, UCAB, UNIMET, UC) como en empresas multinacionales.<button onclick="scrollToFootnote(2)" class="cite-link">2</button></p>
+                    <p><strong>3. Cultura laboral orientada a la competitividad y polivalencia:</strong> El trabajador urbano del eje central exhibe una alta capacidad de adaptación a entornos corporativos dinámicos, esquemas de trabajo por objetivos y adopción rápida de herramientas tecnológicas.<button onclick="scrollToFootnote(9)" class="cite-link">9</button></p>
+                    <p><strong>4. Tradición técnico-industrial en el eje Carabobo-Aragua:</strong> Disponibilidad remanente de operarios, técnicos medios e ingenieros con experiencia en procesos de manufactura, ensamblaje, alimentos, metalmecánica y mantenimiento industrial.<button onclick="scrollToFootnote(3)" class="cite-link">3</button></p>
+                    <p><strong>5. Flujo continuo de migración interna calificada:</strong> Capacidad de atracción de jóvenes profesionales provenientes del interior del país que se trasladan a la capital en búsqueda de mejores remuneraciones y desarrollo de carrera.<button onclick="scrollToFootnote(1)" class="cite-link">1</button><button onclick="scrollToFootnote(4)" class="cite-link">4</button></p>
+                  </td>
+                  <td
+                    onmouseenter="setMapHighlight('andina')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 align-top space-y-2.5 border-l border-slate-200/80 hover:bg-emerald-50/40 transition-colors">
+                    <p><strong>1. Sólido capital intelectual, académico y científico:</strong> Presencia histórica de la Universidad de Los Andes (ULA), la Universidad Nacional Experimental del Táchira (UNET) y núcleos regionales que han forjado una masa de profesionales, investigadores y técnicos de rigurosa preparación teórica y metodológica.<button onclick="scrollToFootnote(5)" class="cite-link">5</button><button onclick="scrollToFootnote(6)" class="cite-link">6</button></p>
+                    <p><strong>2. Ética laboral, disciplina y fuerte arraigo identitario:</strong> La fuerza de trabajo andina se caracteriza culturalmente por altos niveles de responsabilidad, puntualidad, vocación de servicio, estabilidad en el puesto y sentido de pertenencia hacia las instituciones y empresas locales.<button onclick="scrollToFootnote(6)" class="cite-link">6</button></p>
+                    <p><strong>3. Conocimiento especializado en sectores endógenos:</strong> Dominio técnico y empírico intergeneracional en agricultura intensiva de tierras altas, agroindustria, ganadería de altura, gastronomía, hospitalidad turística y gestión ambiental/forestal.<button onclick="scrollToFootnote(2)" class="cite-link">2</button><button onclick="scrollToFootnote(6)" class="cite-link">6</button></p>
+                    <p><strong>4. Resiliencia y capacidad de autogestión comunitaria:</strong> Habilidad comprobada del talento local para sostener operaciones educativas, comerciales y productivas mediante redes de cooperación familiar y local en contextos de escasez de recursos.<button onclick="scrollToFootnote(6)" class="cite-link">6</button><button onclick="scrollToFootnote(7)" class="cite-link">7</button></p>
+                    <p><strong>5. Menor volatilidad y rotación voluntaria en el empleo:</strong> Quienes deciden permanecer en la región muestran una mayor lealtad organizacional y permanencia promedio en comparación con el vertiginoso cambio de empleo de la capital.<button onclick="scrollToFootnote(3)" class="cite-link">3</button><button onclick="scrollToFootnote(4)" class="cite-link">4</button></p>
+                  </td>
+                </tr>
+
+                <!-- FILA 2: DEBILIDADES -->
+                <tr class="bg-white/65 backdrop-blur-[1px]">
+                  <td class="p-4 sm:p-5 align-top font-bold text-slate-900 bg-slate-100/75">
+                    DEBILIDADES (D)
+                    <span class="block font-normal text-xs text-slate-600 mt-1">
+                      (Limitaciones y vulnerabilidades internas del recurso humano)
+                    </span>
+                  </td>
+                  <td
+                    onmouseenter="setMapHighlight('central')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 align-top space-y-2.5 border-l border-slate-200/80 hover:bg-emerald-50/40 transition-colors">
+                    <p><strong>1. Alta rotación laboral y "canibalización" de talento:</strong> La escasez de perfiles medios y especializados provoca una intensa rotación entre empresas que compiten por el mismo grupo reducido de trabajadores mediante incrementos marginales de salario.<button onclick="scrollToFootnote(3)" class="cite-link">3</button><button onclick="scrollToFootnote(4)" class="cite-link">4</button></p>
+                    <p><strong>2. Agotamiento físico y psicosocial del trabajador (burnout):</strong> Los largos tiempos de traslado interurbano (ciudades dormitorio como Guarenas-Guatire, Valles del Tuy, Cagua o Los Teques), sumados a la presión inflacionaria, deterioran la salud mental y el rendimiento laboral.<button onclick="scrollToFootnote(1)" class="cite-link">1</button><button onclick="scrollToFootnote(4)" class="cite-link">4</button></p>
+                    <p><strong>3. Brecha generacional en mandos medios e industriales:</strong> En los parques industriales de Valencia y Maracay se registra un vacío crítico entre la generación de maestros técnicos e ingenieros próximos al retiro y los jóvenes recién ingresados sin experiencia en planta.<button onclick="scrollToFootnote(3)" class="cite-link">3</button><button onclick="scrollToFootnote(8)" class="cite-link">8</button></p>
+                    <p><strong>4. Elevadas pretensiones salariales desvinculadas de la productividad:</strong> El alto costo de vida metropolitano presiona a los candidatos a exigir remuneraciones que muchas pequeñas y medianas empresas (PyMEs) no logran absorber.<button onclick="scrollToFootnote(3)" class="cite-link">3</button><button onclick="scrollToFootnote(4)" class="cite-link">4</button></p>
+                    <p><strong>5. Desprofesionalización hacia el comercio y la economía de plataformas:</strong> Desplazamiento masivo de técnicos y universitarios hacia empleos informales, ventas o servicios de delivery y transporte por aplicación, provocando la obsolescencia de sus competencias originales.<button onclick="scrollToFootnote(1)" class="cite-link">1</button><button onclick="scrollToFootnote(8)" class="cite-link">8</button></p>
+                  </td>
+                  <td
+                    onmouseenter="setMapHighlight('andina')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 align-top space-y-2.5 border-l border-slate-200/80 hover:bg-emerald-50/40 transition-colors">
+                    <p><strong>1. Envejecimiento demográfico acelerado de la fuerza laboral:</strong> La salida masiva de cohortes jóvenes (18 a 35 años) por pasos fronterizos o hacia el centro del país ha elevado la edad promedio de los trabajadores activos y la tasa de dependencia demográfica regional.<button onclick="scrollToFootnote(1)" class="cite-link">1</button><button onclick="scrollToFootnote(8)" class="cite-link">8</button></p>
+                    <p><strong>2. Vaciado de relevo generacional en oficios y academia:</strong> Despoblación crítica en facultades universitarias, centros de salud y unidades de producción agrícola, dejando a expertos senior sin auxiliares ni sucesores en formación.<button onclick="scrollToFootnote(5)" class="cite-link">5</button><button onclick="scrollToFootnote(6)" class="cite-link">6</button><button onclick="scrollToFootnote(7)" class="cite-link">7</button></p>
+                    <p><strong>3. Descalce entre la formación académica tradicional y la economía digital:</strong> Predominio de perfiles formados bajo esquemas curriculares clásicos o humanísticos, con brechas en habilidades corporativas modernas, automatización, negocios digitales y dominio de idiomas.<button onclick="scrollToFootnote(9)" class="cite-link">9</button></p>
+                    <p><strong>4. Dependencia de las remesas como inhibidor de la oferta laboral:</strong> En numerosos hogares andinos, la recepción periódica de remesas familiares eleva el "salario de reserva", desmotivando la aceptación de empleos formales locales con remuneraciones bajas.<button onclick="scrollToFootnote(1)" class="cite-link">1</button><button onclick="scrollToFootnote(8)" class="cite-link">8</button></p>
+                    <p><strong>5. Subempleo estructural y escasez de experiencia corporativa a gran escala:</strong> Al existir pocas grandes industrias, el talento joven local carece de exposición práctica a sistemas organizacionales complejos, estándares internacionales de calidad y gestión de grandes presupuestos.<button onclick="scrollToFootnote(2)" class="cite-link">2</button><button onclick="scrollToFootnote(3)" class="cite-link">3</button></p>
+                  </td>
+                </tr>
+
+                <!-- FILA 3: OPORTUNIDADES -->
+                <tr class="bg-white/65 backdrop-blur-[1px]">
+                  <td class="p-4 sm:p-5 align-top font-bold text-slate-900 bg-slate-100/75">
+                    OPORTUNIDADES (O)
+                    <span class="block font-normal text-xs text-slate-600 mt-1">
+                      (Condiciones externas del entorno que favorecen el desarrollo del talento)
+                    </span>
+                  </td>
+                  <td
+                    onmouseenter="setMapHighlight('central')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 align-top space-y-2.5 border-l border-slate-200/80 hover:bg-emerald-50/40 transition-colors">
+                    <p><strong>1. Asiento de sedes corporativas, cámaras binacionales y organismos internacionales:</strong> La concentración de casas matrices, embajadas y agencias multilaterales en Caracas genera una demanda sostenida de consultores, analistas y personal calificado.<button onclick="scrollToFootnote(2)" class="cite-link">2</button></p>
+                    <p><strong>2. Expansión del sector servicios, fintech, logística y salud privada:</strong> El dinamismo comercial de la capital y Valencia abre nuevos yacimientos de empleo en comercio electrónico, tecnología financiera, cadenas de farmacias, clínicas y gastronomía.<button onclick="scrollToFootnote(2)" class="cite-link">2</button><button onclick="scrollToFootnote(9)" class="cite-link">9</button></p>
+                    <p><strong>3. Ecosistema denso de capacitación ejecutiva y alianzas privadas:</strong> Presencia de escuelas de negocios (como el IESA), institutos tecnológicos y cámaras empresariales que facilitan programas de actualización rápida (upskilling) y networking profesional.<button onclick="scrollToFootnote(3)" class="cite-link">3</button><button onclick="scrollToFootnote(9)" class="cite-link">9</button></p>
+                    <p><strong>4. Mejora relativa en conectividad digital y suministro energético (Caracas):</strong> Las ventajas comparativas de la capital en fibra óptica y menor incidencia de racionamientos eléctricos favorecen la operación continua de centros de servicios compartidos y trabajo híbrido.<button onclick="scrollToFootnote(1)" class="cite-link">1</button><button onclick="scrollToFootnote(9)" class="cite-link">9</button></p>
+                  </td>
+                  <td
+                    onmouseenter="setMapHighlight('andina')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 align-top space-y-2.5 border-l border-slate-200/80 hover:bg-emerald-50/40 transition-colors">
+                    <p><strong>1. Yacimientos de empleo en especialidades territoriales no cubiertas:</strong> Demanda latente de perfiles técnicos en gestión integral de riesgos socionaturales (sismología, geotecnia, control de cuencas), agroecología, biotecnología agrícola, energías limpias y turismo sostenible de salud y naturaleza.<button onclick="scrollToFootnote(2)" class="cite-link">2</button><button onclick="scrollToFootnote(5)" class="cite-link">5</button></p>
+                    <p><strong>2. Reactivación del eje comercial y logístico transfronterizo:</strong> La apertura e intercambio comercial entre el Táchira y el departamento Norte de Santander (Colombia) impulsa la demanda de talento en aduanas, comercio exterior, logística terrestre y servicios conexos.<button onclick="scrollToFootnote(2)" class="cite-link">2</button><button onclick="scrollToFootnote(10)" class="cite-link">10</button></p>
+                    <p><strong>3. Auge del teletrabajo global (remote work) como ancla de retención:</strong> El menor costo relativo de vida en ciudades como Mérida o San Cristóbal, combinado con su calidad ambiental y tranquilidad urbana, permite que jóvenes bilingües y programadores trabajen remotamente para empresas extranjeras sin emigrar.<button onclick="scrollToFootnote(4)" class="cite-link">4</button><button onclick="scrollToFootnote(9)" class="cite-link">9</button></p>
+                    <p><strong>4. Potencial de articulación Universidad-Empresa-Comunidad:</strong> Disposición de las universidades regionales (ULA, UNET) para diseñar diplomados, microcredenciales y asesorías técnicas adaptadas a las cámaras de comercio, productores agrícolas y gremios turísticos locales.<button onclick="scrollToFootnote(6)" class="cite-link">6</button><button onclick="scrollToFootnote(7)" class="cite-link">7</button></p>
+                  </td>
+                </tr>
+
+                <!-- FILA 4: AMENAZAS -->
+                <tr class="bg-white/65 backdrop-blur-[1px]">
+                  <td class="p-4 sm:p-5 align-top font-bold text-slate-900 bg-slate-100/75">
+                    AMENAZAS (A)
+                    <span class="block font-normal text-xs text-slate-600 mt-1">
+                      (Riesgos y restricciones del entorno que comprometen el potencial laboral)
+                    </span>
+                  </td>
+                  <td
+                    onmouseenter="setMapHighlight('central')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 align-top space-y-2.5 border-l border-slate-200/80 hover:bg-emerald-50/40 transition-colors">
+                    <p><strong>1. Costo de vida prohibitivo y crisis de movilidad metropolitana:</strong> La dolarización inflacionaria en vivienda, alimentación, salud y transporte en el eje central erosiona el salario real y dificulta la retención de personal operativo y técnico.<button onclick="scrollToFootnote(1)" class="cite-link">1</button><button onclick="scrollToFootnote(4)" class="cite-link">4</button></p>
+                    <p><strong>2. Subutilización crónica de la capacidad instalada industrial:</strong> El estancamiento manufacturero en Valencia y Maracay por falta de financiamiento bancario, voracidad fiscal y contracción del consumo interno amenaza con destruir los puestos de trabajo técnicos restantes.<button onclick="scrollToFootnote(3)" class="cite-link">3</button></p>
+                    <p><strong>3. Fuga selectiva de talento joven por vía aérea:</strong> El eje central sigue funcionando como plataforma de salida internacional para graduandos universitarios con pasaporte y recursos que son captados por mercados laborales extranjeros.<button onclick="scrollToFootnote(1)" class="cite-link">1</button><button onclick="scrollToFootnote(8)" class="cite-link">8</button></p>
+                    <p><strong>4. Siniestralidad, inseguridad y colapso de servicios periféricos:</strong> El deterioro del suministro de agua, transporte público y servicios sanitarios en las zonas periféricas donde habita la clase trabajadora incrementa el ausentismo y la conflictividad laboral.<button onclick="scrollToFootnote(1)" class="cite-link">1</button></p>
+                  </td>
+                  <td
+                    onmouseenter="setMapHighlight('andina')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 align-top space-y-2.5 border-l border-slate-200/80 hover:bg-emerald-50/40 transition-colors">
+                    <p><strong>1. Aislamiento geográfico por deterioro vial y escasez de combustible:</strong> Las fallas en las troncales andinas (riesgos de derrumbes en lluvias), los altos costos de fletes, la intermitencia de vuelos comerciales y las colas por gasolina o gasoil encarecen la movilidad laboral y asfixian el aparato productivo regional.<button onclick="scrollToFootnote(2)" class="cite-link">2</button><button onclick="scrollToFootnote(3)" class="cite-link">3</button></p>
+                    <p><strong>2. Crisis severa de los servicios públicos básicos (electricidad y conectividad):</strong> Los cortes eléctricos prolongados y las fluctuaciones de voltaje en los estados andinos paralizan jornadas laborales, dañan equipos y expulsan a trabajadores remotos y emprendimientos digitales.<button onclick="scrollToFootnote(1)" class="cite-link">1</button><button onclick="scrollToFootnote(6)" class="cite-link">6</button><button onclick="scrollToFootnote(7)" class="cite-link">7</button></p>
+                    <p><strong>3. Asimetría salarial y competencia laboral fronteriza:</strong> La cercanía geográfica con Colombia incentiva la migración pendular o definitiva de mano de obra calificada (médicos, enfermeros, técnicos, obreros agrícolas) atraída por remuneraciones en moneda más estable.<button onclick="scrollToFootnote(8)" class="cite-link">8</button><button onclick="scrollToFootnote(10)" class="cite-link">10</button></p>
+                    <p><strong>4. Asfixia presupuestaria de las universidades autónomas y experimentales:</strong> La desinversión estatal en la ULA y la UNET amenaza la sostenibilidad de laboratorios, posgrados e institutos de investigación, poniendo en riesgo la principal fábrica de talento humano de toda la región andina.<button onclick="scrollToFootnote(5)" class="cite-link">5</button><button onclick="scrollToFootnote(6)" class="cite-link">6</button><button onclick="scrollToFootnote(7)" class="cite-link">7</button></p>
+                  </td>
+                </tr>
+
+                <!-- FILA DE BOTONES DEBAJO DE CADA COLUMNA HACIA SU RESPECTIVA MATRIZ SITUACIONAL -->
+                <tr class="bg-slate-100/90">
+                  <td class="p-4"></td>
+                  <td
+                    onmouseenter="setMapHighlight('central')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 border-l border-slate-200/80 text-center">
+                    <button onclick="navigateTo(3)"
+                      class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-semibold shadow-sm transition-all">
+                      <span>Matriz Situacional FODA: Región Central</span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                      </svg>
+                    </button>
+                  </td>
+                  <td
+                    onmouseenter="setMapHighlight('andina')"
+                    onmouseleave="setMapHighlight(null)"
+                    class="p-4 sm:p-5 border-l border-slate-200/80 text-center">
+                    <button onclick="navigateTo(4)"
+                      class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-semibold shadow-sm transition-all">
+                      <span>Matriz Situacional FODA: Región Andina</span>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Cuadro separado debajo de la tabla con las Notas al pie de página -->
+        <div id="footnotes-box" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
+          <h3 class="text-sm sm:text-base font-bold text-slate-900">Notas:</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs sm:text-sm">
+            <div id="footnote-1" class="p-2.5 rounded-lg border border-transparent transition-colors flex items-baseline gap-2">
+              <span class="font-bold text-emerald-800 shrink-0">1</span>
+              <a href="https://www.proyectoencovi.com/encovi-2024" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-emerald-700 underline underline-offset-2">
+                ENCOVI 2024 - IIES-UCAB
+              </a>
+            </div>
+            <div id="footnote-2" class="p-2.5 rounded-lg border border-transparent transition-colors flex items-baseline gap-2">
+              <span class="font-bold text-emerald-800 shrink-0">2</span>
+              <a href="https://www.ucab.edu.ve/wp-content/uploads/2024/04/Informe-de-coyuntura-abril-2024-VD-24-04-2024_compressed.pdf" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-emerald-700 underline underline-offset-2">
+                Informe de Coyuntura Venezuela - IIES-UCAB
+              </a>
+            </div>
+            <div id="footnote-3" class="p-2.5 rounded-lg border border-transparent transition-colors flex items-baseline gap-2">
+              <span class="font-bold text-emerald-800 shrink-0">3</span>
+              <a href="https://conintranet.com/imgPost/Imagenes/ECI_IT24_20052024.pdf" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-emerald-700 underline underline-offset-2">
+                Encuesta de Coyuntura Industrial - Conindustria
+              </a>
+            </div>
+            <div id="footnote-4" class="p-2.5 rounded-lg border border-transparent transition-colors flex items-baseline gap-2">
+              <span class="font-bold text-emerald-800 shrink-0">4</span>
+              <a href="https://observatoriodefinanzas.com/category/indice-de-remuneraciones/" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-emerald-700 underline underline-offset-2">
+                Índice de Remuneraciones de los Trabajadores - Observatorio Venezolano de Finanzas (OVF)
+              </a>
+            </div>
+            <div id="footnote-5" class="p-2.5 rounded-lg border border-transparent transition-colors flex items-baseline gap-2">
+              <span class="font-bold text-emerald-800 shrink-0">5</span>
+              <a href="https://www.uladdhh.org.ve/wp-content/uploads/2020/09/Declive-Investigaci%C3%B3n-Venezuela.pdf" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-emerald-700 underline underline-offset-2">
+                Declive de la Investigación Científica en Venezuela - Observatorio de Derechos Humanos de la ULA (ODH-ULA)
+              </a>
+            </div>
+            <div id="footnote-6" class="p-2.5 rounded-lg border border-transparent transition-colors flex items-baseline gap-2">
+              <span class="font-bold text-emerald-800 shrink-0">6</span>
+              <a href="https://www.uladdhh.org.ve/wp-content/uploads/2026/03/8.-Reporte-agosto-2025-SITUACION-DE-LAS-UNIVERSIDADES-EN-VENEZUELA.pdf" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-emerald-700 underline underline-offset-2">
+                Situación de las Universidades en Venezuela - ODH-ULA y Observatorio de Universidades (OBU)
+              </a>
+            </div>
+            <div id="footnote-7" class="p-2.5 rounded-lg border border-transparent transition-colors flex items-baseline gap-2">
+              <span class="font-bold text-emerald-800 shrink-0">7</span>
+              <a href="https://humvenezuela.com/wp-content/uploads/2022/08/BOLETIN-SOBRE-LAS-CONDICIONES-DE-TRABAJO-DE-LOS-DOCENTES-UNIVERSITARIOS-DE-VENEZUELA.pdf" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-emerald-700 underline underline-offset-2">
+                Boletín sobre las Condiciones de Trabajo de los Docentes Universitarios - ENOBU
+              </a>
+            </div>
+            <div id="footnote-8" class="p-2.5 rounded-lg border border-transparent transition-colors flex items-baseline gap-2">
+              <span class="font-bold text-emerald-800 shrink-0">8</span>
+              <a href="https://publications.iadb.org/publications/spanish/document/Medicion-del-impacto-de-la-migracion-en-Venezuela.pdf" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-emerald-700 underline underline-offset-2">
+                Medición del Impacto de la Migración en Venezuela - Banco Interamericano de Desarrollo (BID)
+              </a>
+            </div>
+            <div id="footnote-9" class="p-2.5 rounded-lg border border-transparent transition-colors flex items-baseline gap-2">
+              <span class="font-bold text-emerald-800 shrink-0">9</span>
+              <a href="https://publications.iadb.org/publications/spanish/document/Chequeo-digital-en-Venezuela-resultados-y-reflexiones-sobre-la-madurez-digital-de-las-empresas-en-un-entorno-economico-desafiante.pdf" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-emerald-700 underline underline-offset-2">
+                Chequeo Digital en Venezuela - Banco Interamericano de Desarrollo (BID)
+              </a>
+            </div>
+            <div id="footnote-10" class="p-2.5 rounded-lg border border-transparent transition-colors flex items-baseline gap-2">
+              <span class="font-bold text-emerald-800 shrink-0">10</span>
+              <a href="https://www.ucat.edu.ve/web/download/facultades/investigacion_y_postgrado/investigacion_y_postgrado/observatorio_social/publicaciones/7-Consecuencias-del-contrabando-UCAT.pdf" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-emerald-700 underline underline-offset-2">
+                Observatorio Social del Estado Táchira - Universidad Católica del Táchira (UCAT)
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PÁGINA 3: MATRIZ SITUACIONAL FODA - REGIÓN CENTRAL + REFLEXIÓN
+         ========================================== -->
+    <section id="page-3" class="spa-page py-5 px-2 sm:px-4 lg:px-6">
+      <div class="max-w-[1600px] mx-auto space-y-6">
+
+        <div class="text-center max-w-5xl mx-auto space-y-1">
+          <h2 class="serif-title text-lg sm:text-xl lg:text-2xl font-bold text-slate-900">
+            Matriz Situacional FODA Aplicada al Talento Humano: Zona 1: Región Central (Caracas, Maracay y Valencia)
+          </h2>
+          <p class="text-[11px] sm:text-xs text-slate-500">
+            Pasa el cursor sobre cualquier estrategia para iluminar sus factores origen • Haz clic en cualquier tarjeta para elevarla y voltearla con el detalle completo
+          </p>
+        </div>
+
+        <!-- Contenedor con Flechas Laterales de Navegación y la Matriz 3x3 Ampliada -->
+        <div class="relative flex items-center gap-1.5 sm:gap-3">
+
+          <!-- Botón Flecha Izquierda (Retroceder a Página 2) -->
+          <button onclick="navigateTo(2)" title="Página anterior"
+            class="shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white border border-slate-200 shadow-sm hover:bg-emerald-50 hover:border-emerald-400 text-slate-700 hover:text-emerald-800 flex items-center justify-center transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+
+          <!-- Matriz FODA 3x3: Región Central -->
+          <div id="foda-matrix-central" class="w-full overflow-x-auto rounded-2xl border border-slate-300 bg-white shadow-md">
+            <table class="w-full border-collapse text-left min-w-[980px] table-fixed">
+              <thead>
+                <tr class="border-b border-slate-300">
+                  <!-- Celda Esquina (Fila 1, Columna 1) con foto de Caracas en marca de agua clara -->
+                  <th class="w-[24%] p-4 sm:p-5 relative overflow-hidden bg-slate-100 text-slate-900 align-middle">
+                    <img
+                      src="https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?auto=format&fit=crop&w=900&q=80"
+                      alt="Caracas en marca de agua"
+                      class="absolute inset-0 w-full h-full object-cover opacity-85 pointer-events-none scale-105"
+                      onerror="this.style.display='none'"
+                    />
+                    <div class="absolute inset-0 bg-gradient-to-br from-white/75 via-white/60 to-emerald-50/65 pointer-events-none"></div>
+                    <div class="relative z-10 space-y-2.5">
+                      <span class="inline-block px-3 py-1 rounded-lg bg-emerald-800/95 text-white text-base sm:text-xl font-extrabold uppercase tracking-wide shadow-sm">
+                        Zona 1: Región Central
+                      </span>
+                      <p class="text-2xl sm:text-3xl font-black text-slate-900 leading-tight drop-shadow-[0_1px_2px_rgba(255,255,255,0.95)]">
+                        Caracas, Maracay y Valencia
+                      </p>
+                    </div>
+                  </th>
+
+                  <!-- Cabecera Columna 2: FORTALEZAS (F) -> Fondo Azul Pálido -->
+                  <th class="w-[38%] p-2.5 sm:p-3.5 bg-sky-100/90 border-l border-sky-200 align-top">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs sm:text-sm font-extrabold text-sky-950 uppercase tracking-wide">
+                        FORTALEZAS (F)
+                      </span>
+                      <span class="text-[10px] font-medium text-sky-800 bg-sky-200/80 px-2 py-0.5 rounded-full">
+                        Clic para voltear
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1.5 text-xs font-normal text-slate-800">
+                      <!-- F1 -->
+                      <div id="central-F1" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-sky-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1.5">F1</span>
+                              <span class="font-semibold text-slate-800">Masa crítica y volumen demográfico activo.</span>
+                            </div>
+                            <span class="text-[10px] text-sky-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-sky-50 border border-sky-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1">F1</span>
+                            <strong>Masa crítica y volumen demográfico activo:</strong> A pesar de la emigración nacional, el eje central retiene la mayor densidad de Población Económicamente Activa (PEA) del país, facilitando el reclutamiento en volumen para operaciones comerciales, logísticas y de servicios.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- F2 -->
+                      <div id="central-F2" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-sky-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1.5">F2</span>
+                              <span class="font-semibold text-slate-800">Concentración de talento gerencial y corporativo.</span>
+                            </div>
+                            <span class="text-[10px] text-sky-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-sky-50 border border-sky-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1">F2</span>
+                            <strong>Concentración de talento gerencial y corporativo:</strong> Presencia de profesionales con experiencia en banca, finanzas, mercadeo, tecnología, derecho corporativo y cadenas de suministro, formados tanto en universidades de élite (UCV, USB, UCAB, UNIMET, UC) como en empresas multinacionales.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- F3 -->
+                      <div id="central-F3" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-sky-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1.5">F3</span>
+                              <span class="font-semibold text-slate-800">Cultura laboral orientada a competitividad y polivalencia.</span>
+                            </div>
+                            <span class="text-[10px] text-sky-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-sky-50 border border-sky-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1">F3</span>
+                            <strong>Cultura laboral orientada a la competitividad y polivalencia:</strong> El trabajador urbano del eje central exhibe una alta capacidad de adaptación a entornos corporativos dinámicos, esquemas de trabajo por objetivos y adopción rápida de herramientas tecnológicas.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- F4 -->
+                      <div id="central-F4" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-sky-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1.5">F4</span>
+                              <span class="font-semibold text-slate-800">Tradición técnico-industrial en el eje Carabobo-Aragua.</span>
+                            </div>
+                            <span class="text-[10px] text-sky-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-sky-50 border border-sky-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1">F4</span>
+                            <strong>Tradición técnico-industrial en el eje Carabobo-Aragua:</strong> Disponibilidad remanente de operarios, técnicos medios e ingenieros con experiencia en procesos de manufactura, ensamblaje, alimentos, metalmecánica y mantenimiento industrial.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- F5 -->
+                      <div id="central-F5" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-sky-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1.5">F5</span>
+                              <span class="font-semibold text-slate-800">Flujo continuo de migración interna calificada.</span>
+                            </div>
+                            <span class="text-[10px] text-sky-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-sky-50 border border-sky-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1">F5</span>
+                            <strong>Flujo continuo de migración interna calificada:</strong> Capacidad de atracción de jóvenes profesionales provenientes del interior del país que se trasladan a la capital en búsqueda de mejores remuneraciones y desarrollo de carrera.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+
+                  <!-- Cabecera Columna 3: DEBILIDADES (D) -> Fondo Coral / Rosa Pálido -->
+                  <th class="w-[38%] p-2.5 sm:p-3.5 bg-rose-100/90 border-l border-rose-200 align-top">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs sm:text-sm font-extrabold text-rose-950 uppercase tracking-wide">
+                        DEBILIDADES (D)
+                      </span>
+                      <span class="text-[10px] font-medium text-rose-800 bg-rose-200/80 px-2 py-0.5 rounded-full">
+                        Clic para voltear
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1.5 text-xs font-normal text-slate-800">
+                      <!-- D1 -->
+                      <div id="central-D1" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-rose-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1.5">D1</span>
+                              <span class="font-semibold text-slate-800">Alta rotación laboral y "canibalización" de talento.</span>
+                            </div>
+                            <span class="text-[10px] text-rose-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-rose-50 border border-rose-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1">D1</span>
+                            <strong>Alta rotación laboral y "canibalización" de talento:</strong> La escasez de perfiles medios y especializados provoca una intensa rotación entre empresas que compiten por el mismo grupo reducido de trabajadores mediante incrementos marginales de salario.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- D2 -->
+                      <div id="central-D2" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-rose-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1.5">D2</span>
+                              <span class="font-semibold text-slate-800">Agotamiento físico y psicosocial del trabajador (burnout).</span>
+                            </div>
+                            <span class="text-[10px] text-rose-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-rose-50 border border-rose-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1">D2</span>
+                            <strong>Agotamiento físico y psicosocial del trabajador (burnout):</strong> Los largos tiempos de traslado interurbano (ciudades dormitorio como Guarenas-Guatire, Valles del Tuy, Cagua o Los Teques), sumados a la presión inflacionaria, deterioran la salud mental y el rendimiento laboral.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- D3 -->
+                      <div id="central-D3" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-rose-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1.5">D3</span>
+                              <span class="font-semibold text-slate-800">Brecha generacional en mandos medios e industriales.</span>
+                            </div>
+                            <span class="text-[10px] text-rose-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-rose-50 border border-rose-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1">D3</span>
+                            <strong>Brecha generacional en mandos medios e industriales:</strong> En los parques industriales de Valencia y Maracay se registra un vacío crítico entre la generación de maestros técnicos e ingenieros próximos al retiro y los jóvenes recién ingresados sin experiencia en planta.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- D4 -->
+                      <div id="central-D4" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-rose-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1.5">D4</span>
+                              <span class="font-semibold text-slate-800">Elevadas pretensiones salariales vs. productividad.</span>
+                            </div>
+                            <span class="text-[10px] text-rose-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-rose-50 border border-rose-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1">D4</span>
+                            <strong>Elevadas pretensiones salariales desvinculadas de la productividad:</strong> El alto costo de vida metropolitano presiona a los candidatos a exigir remuneraciones que muchas pequeñas y medianas empresas (PyMEs) no logran absorber.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- D5 -->
+                      <div id="central-D5" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-rose-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1.5">D5</span>
+                              <span class="font-semibold text-slate-800">Desprofesionalización hacia comercio y plataformas.</span>
+                            </div>
+                            <span class="text-[10px] text-rose-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-rose-50 border border-rose-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1">D5</span>
+                            <strong>Desprofesionalización hacia el comercio y la economía de plataformas:</strong> Desplazamiento masivo de técnicos y universitarios hacia empleos informales, ventas o servicios de delivery y transporte por aplicación, provocando la obsolescencia de sus competencias originales.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y divide-slate-300 text-xs">
+                <!-- FILA 2: OPORTUNIDADES (Amarillo) + FO (Azul+Amarillo = Verde) + DO (Rojo+Amarillo = Naranja) -->
+                <tr>
+                  <!-- Cabecera Fila 2: OPORTUNIDADES (O) -> Fondo Amarillo Pálido -->
+                  <th class="p-2.5 sm:p-3.5 bg-amber-100/90 align-top">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs sm:text-sm font-extrabold text-amber-950 uppercase tracking-wide">
+                        OPORTUNIDADES (O)
+                      </span>
+                      <span class="text-[10px] font-medium text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full">
+                        Clic
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1.5 text-xs font-normal text-slate-800">
+                      <!-- O1 -->
+                      <div id="central-O1" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-amber-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1.5">O1</span>
+                              <span class="font-semibold text-slate-800">Sedes corporativas, cámaras y org. internacionales.</span>
+                            </div>
+                            <span class="text-[10px] text-amber-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-amber-50 border border-amber-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1">O1</span>
+                            <strong>Asiento de sedes corporativas, cámaras binacionales y organismos internacionales:</strong> La concentración de casas matrices, embajadas y agencias multilaterales en Caracas genera una demanda sostenida de consultores, analistas y personal calificado.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- O2 -->
+                      <div id="central-O2" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-amber-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1.5">O2</span>
+                              <span class="font-semibold text-slate-800">Expansión de servicios, fintech, logística y salud.</span>
+                            </div>
+                            <span class="text-[10px] text-amber-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-amber-50 border border-amber-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1">O2</span>
+                            <strong>Expansión del sector servicios, fintech, logística y salud privada:</strong> El dinamismo comercial de la capital y Valencia abre nuevos yacimientos de empleo en comercio electrónico, tecnología financiera, cadenas de farmacias, clínicas y gastronomía.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- O3 -->
+                      <div id="central-O3" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-amber-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1.5">O3</span>
+                              <span class="font-semibold text-slate-800">Ecosistema denso de capacitación ejecutiva.</span>
+                            </div>
+                            <span class="text-[10px] text-amber-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-amber-50 border border-amber-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1">O3</span>
+                            <strong>Ecosistema denso de capacitación ejecutiva y alianzas privadas:</strong> Presencia de escuelas de negocios (como el IESA), institutos tecnológicos y cámaras empresariales que facilitan programas de actualización rápida (upskilling) y networking profesional.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- O4 -->
+                      <div id="central-O4" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-amber-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1.5">O4</span>
+                              <span class="font-semibold text-slate-800">Mejora relativa en conectividad y energía (Caracas).</span>
+                            </div>
+                            <span class="text-[10px] text-amber-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-amber-50 border border-amber-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1">O4</span>
+                            <strong>Mejora relativa en conectividad digital y suministro energético (Caracas):</strong> Las ventajas comparativas de la capital en fibra óptica y menor incidencia de racionamientos eléctricos favorecen la operación continua de centros de servicios compartidos y trabajo híbrido.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+
+                  <!-- Cruce FO (Azul + Amarillo = VERDE CLARO) -->
+                  <td class="p-2.5 sm:p-3.5 border-l border-emerald-200 align-top bg-emerald-100/85 relative overflow-hidden">
+                    <!-- Marca de agua FO + Ícono -->
+                    <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-end pr-4 opacity-[0.09] text-emerald-950">
+                      <span class="text-7xl sm:text-8xl font-black tracking-tighter">FO</span>
+                    </div>
+                    <div class="relative z-10 space-y-2">
+                      <div class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-950 border-b border-emerald-300/80 pb-1 flex items-center justify-between">
+                        <span>ESTRATEGIAS FO (Atacar)</span>
+                        <span class="text-[10px] font-semibold text-emerald-800">Azul + Amarillo</span>
+                      </div>
+
+                      <!-- FO 1 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['F1','F2','O1','O4'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['F1','F2','O1','O4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-emerald-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">1. Creación de Centros de Servicios Compartidos y Hubs Corporativos</span>
+                            <span class="text-[10px] font-bold text-emerald-700 shrink-0 px-1.5 py-0.5 rounded bg-emerald-100">F1,F2/O1,O4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-emerald-50 border border-emerald-500 text-slate-900 leading-relaxed">
+                            <strong>1. Creación de Centros de Servicios Compartidos y Hubs Corporativos (F1, F2 / O1, O4):</strong> Aprovechar la masa crítica de especialistas y la mejor conectividad capitalina para instalar unidades de consultoría financiera, legal y tecnológica que atiendan a casas matrices y cámaras binacionales.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- FO 2 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['F3','F5','O2','O3'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['F3','F5','O2','O3'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-emerald-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">2. Programas de Aceleración y Atracción de Talento Joven Migrante Interno</span>
+                            <span class="text-[10px] font-bold text-emerald-700 shrink-0 px-1.5 py-0.5 rounded bg-emerald-100">F3,F5/O2,O3 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-emerald-50 border border-emerald-500 text-slate-900 leading-relaxed">
+                            <strong>2. Programas de Aceleración y Atracción de Talento Joven Migrante Interno (F3, F5 / O2, O3):</strong> Articular convenios entre empresas de sectores en expansión (fintech, salud privada, logística) y escuelas de negocios para absorber, entrenar e integrar rápidamente a los jóvenes profesionales que migran desde el interior hacia la capital.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- FO 3 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['F4','O2'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['F4','O2'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-emerald-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">3. Reactivación de Polos de Manufactura y Logística Especializada</span>
+                            <span class="text-[10px] font-bold text-emerald-700 shrink-0 px-1.5 py-0.5 rounded bg-emerald-100">F4/O2 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-emerald-50 border border-emerald-500 text-slate-900 leading-relaxed">
+                            <strong>3. Reactivación de Polos de Manufactura y Logística Especializada (F4 / O2):</strong> Utilizar la mano de obra técnico-industrial remanente en el eje Carabobo-Aragua para impulsar líneas de producción de alimentos, fármacos y centros de distribución asociados al auge del comercio electrónico y cadenas comerciales.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Cruce DO (Rojo/Coral + Amarillo = NARANJA CLARO) -->
+                  <td class="p-2.5 sm:p-3.5 border-l border-orange-200 align-top bg-orange-100/85 relative overflow-hidden">
+                    <!-- Marca de agua DO -->
+                    <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-end pr-4 opacity-[0.09] text-orange-950">
+                      <span class="text-7xl sm:text-8xl font-black tracking-tighter">DO</span>
+                    </div>
+                    <div class="relative z-10 space-y-2">
+                      <div class="text-[11px] font-extrabold uppercase tracking-wider text-orange-950 border-b border-orange-300/80 pb-1 flex items-center justify-between">
+                        <span>ESTRATEGIAS DO (Reordenar)</span>
+                        <span class="text-[10px] font-semibold text-orange-800">Rojo + Amarillo</span>
+                      </div>
+
+                      <!-- DO 1 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['D1','D2','O4'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['D1','D2','O4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-orange-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">1. Implementación de Esquemas de Trabajo Híbrido y Bienestar Emocional</span>
+                            <span class="text-[10px] font-bold text-orange-800 shrink-0 px-1.5 py-0.5 rounded bg-orange-100">D1,D2/O4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-orange-50 border border-orange-500 text-slate-900 leading-relaxed">
+                            <strong>1. Implementación de Esquemas de Trabajo Híbrido y Bienestar Emocional (D1, D2 / O4):</strong> Mitigar el agotamiento psicosocial (burnout) por traslados desde ciudades dormitorio y reducir la rotación laboral aprovechando la conectividad digital de Caracas para instaurar jornadas flexibles, teletrabajo parcial y programas de gestión emocional.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- DO 2 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['D3','O1','O3'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['D3','O1','O3'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-orange-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">2. Escuelas de Aprendices y Mentoría Intergeneracional en Planta</span>
+                            <span class="text-[10px] font-bold text-orange-800 shrink-0 px-1.5 py-0.5 rounded bg-orange-100">D3/O1,O3 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-orange-50 border border-orange-500 text-slate-900 leading-relaxed">
+                            <strong>2. Escuelas de Aprendices y Mentoría Intergeneracional en Planta (D3 / O1, O3):</strong> Superar la brecha generacional industrial en Valencia y Maracay mediante alianzas con cámaras empresariales e institutos técnicos, donde los maestros operarios e ingenieros senior transfieran su conocimiento a jóvenes aprendices antes de su retiro.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- DO 3 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['D4','D5','O2','O3'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['D4','D5','O2','O3'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-orange-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">3. Planes de Reskilling y Reinserción Corporativa</span>
+                            <span class="text-[10px] font-bold text-orange-800 shrink-0 px-1.5 py-0.5 rounded bg-orange-100">D4,D5/O2,O3 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-orange-50 border border-orange-500 text-slate-900 leading-relaxed">
+                            <strong>3. Planes de Reskilling y Reinserción Corporativa (D4, D5 / O2, O3):</strong> Captar a profesionales desplazados hacia la economía informal o de plataformas mediante becas cortas de actualización (reskilling) en áreas de alta demanda (comercio digital, atención clínica, logística), alineando su productividad con esquemas de remuneración variable.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- FILA 3: AMENAZAS (Violeta) + FA (Azul+Violeta = Índigo) + DA (Rojo+Violeta = Malva/Fucsia) -->
+                <tr>
+                  <!-- Cabecera Fila 3: AMENAZAS (A) -> Fondo Violeta Pálido -->
+                  <th class="p-2.5 sm:p-3.5 bg-purple-100/90 align-top">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs sm:text-sm font-extrabold text-purple-950 uppercase tracking-wide">
+                        AMENAZAS (A)
+                      </span>
+                      <span class="text-[10px] font-medium text-purple-900 bg-purple-200/80 px-2 py-0.5 rounded-full">
+                        Clic
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1.5 text-xs font-normal text-slate-800">
+                      <!-- A1 -->
+                      <div id="central-A1" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-purple-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1.5">A1</span>
+                              <span class="font-semibold text-slate-800">Costo de vida prohibitivo y crisis de movilidad.</span>
+                            </div>
+                            <span class="text-[10px] text-purple-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-purple-50 border border-purple-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1">A1</span>
+                            <strong>Costo de vida prohibitivo y crisis de movilidad metropolitana:</strong> La dolarización inflacionaria en vivienda, alimentación, salud y transporte en el eje central erosiona el salario real y dificulta la retención de personal operativo y técnico.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- A2 -->
+                      <div id="central-A2" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-purple-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1.5">A2</span>
+                              <span class="font-semibold text-slate-800">Subutilización crónica de capacidad industrial.</span>
+                            </div>
+                            <span class="text-[10px] text-purple-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-purple-50 border border-purple-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1">A2</span>
+                            <strong>Subutilización crónica de la capacidad instalada industrial:</strong> El estancamiento manufacturero en Valencia y Maracay por falta de financiamiento bancario, voracidad fiscal y contracción del consumo interno amenaza con destruir los puestos de trabajo técnicos restantes.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- A3 -->
+                      <div id="central-A3" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-purple-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1.5">A3</span>
+                              <span class="font-semibold text-slate-800">Fuga selectiva de talento joven por vía aérea.</span>
+                            </div>
+                            <span class="text-[10px] text-purple-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-purple-50 border border-purple-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1">A3</span>
+                            <strong>Fuga selectiva de talento joven por vía aérea:</strong> El eje central sigue funcionando como plataforma de salida internacional para graduandos universitarios con pasaporte y recursos que son captados por mercados laborales extranjeros.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- A4 -->
+                      <div id="central-A4" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-purple-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1.5">A4</span>
+                              <span class="font-semibold text-slate-800">Siniestralidad y colapso de servicios periféricos.</span>
+                            </div>
+                            <span class="text-[10px] text-purple-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-purple-50 border border-purple-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1">A4</span>
+                            <strong>Siniestralidad, inseguridad y colapso de servicios periféricos:</strong> El deterioro del suministro de agua, transporte público y servicios sanitarios en las zonas periféricas donde habita la clase trabajadora incrementa el ausentismo y la conflictividad laboral.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+
+                  <!-- Cruce FA (Azul + Violeta = ÍNDIGO CLARO) -->
+                  <td class="p-2.5 sm:p-3.5 border-l border-indigo-200 align-top bg-indigo-100/85 relative overflow-hidden">
+                    <!-- Marca de agua FA -->
+                    <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-end pr-4 opacity-[0.09] text-indigo-950">
+                      <span class="text-7xl sm:text-8xl font-black tracking-tighter">FA</span>
+                    </div>
+                    <div class="relative z-10 space-y-2">
+                      <div class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-950 border-b border-indigo-300/80 pb-1 flex items-center justify-between">
+                        <span>ESTRATEGIAS FA (Defender)</span>
+                        <span class="text-[10px] font-semibold text-indigo-800">Azul + Violeta</span>
+                      </div>
+
+                      <!-- FA 1 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['F2','F3','A1','A3'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['F2','F3','A1','A3'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-indigo-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">1. Paquetes de Salario Emocional y Beneficios No Monetarios de Retención</span>
+                            <span class="text-[10px] font-bold text-indigo-800 shrink-0 px-1.5 py-0.5 rounded bg-indigo-100">F2,F3/A1,A3 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-indigo-50 border border-indigo-500 text-slate-900 leading-relaxed">
+                            <strong>1. Paquetes de Salario Emocional y Beneficios No Monetarios de Retención (F2, F3 / A1, A3):</strong> Frenar la fuga selectiva de talento joven al exterior y compensar el alto costo de vida metropolitano mediante planes de carrera acelerados, seguros de salud privados (HCM), bonos de desempeño y subsidios de transporte o alimentación.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- FA 2 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['F3','F4','A2'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['F3','F4','A2'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-indigo-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">2. Células de Polivalencia Operativa y Mantenimiento Preventivo</span>
+                            <span class="text-[10px] font-bold text-indigo-800 shrink-0 px-1.5 py-0.5 rounded bg-indigo-100">F3,F4/A2 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-indigo-50 border border-indigo-500 text-slate-900 leading-relaxed">
+                            <strong>2. Células de Polivalencia Operativa y Mantenimiento Preventivo (F3, F4 / A2):</strong> Defender la continuidad de las plantas industriales de Carabobo y Aragua frente a la capacidad ociosa entrenando a los operarios y técnicos en funciones múltiples (mantenimiento autónomo, control de calidad y optimización de recursos).
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- FA 3 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['F1','F5','A1','A4'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['F1','F5','A1','A4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-indigo-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">3. Redes de Transporte Corporativo y Descentralización de Oficinas</span>
+                            <span class="text-[10px] font-bold text-indigo-800 shrink-0 px-1.5 py-0.5 rounded bg-indigo-100">F1,F5/A1,A4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-indigo-50 border border-indigo-500 text-slate-900 leading-relaxed">
+                            <strong>3. Redes de Transporte Corporativo y Descentralización de Oficinas (F1, F5 / A1, A4):</strong> Proteger la asistencia y puntualidad de la masa trabajadora frente al colapso de servicios periféricos estableciendo rutas de transporte empresarial y oficinas satélite cercanas a los núcleos residenciales.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Cruce DA (Rojo/Coral + Violeta = MALVA / FUCSIA CLARO) -->
+                  <td class="p-2.5 sm:p-3.5 border-l border-fuchsia-200 align-top bg-fuchsia-100/85 relative overflow-hidden">
+                    <!-- Marca de agua DA -->
+                    <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-end pr-4 opacity-[0.09] text-fuchsia-950">
+                      <span class="text-7xl sm:text-8xl font-black tracking-tighter">DA</span>
+                    </div>
+                    <div class="relative z-10 space-y-2">
+                      <div class="text-[11px] font-extrabold uppercase tracking-wider text-fuchsia-950 border-b border-fuchsia-300/80 pb-1 flex items-center justify-between">
+                        <span>ESTRATEGIAS DA (Sobrevivir)</span>
+                        <span class="text-[10px] font-semibold text-fuchsia-800">Rojo + Violeta</span>
+                      </div>
+
+                      <!-- DA 1 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['D1','D4','A1','A2'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['D1','D4','A1','A2'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-fuchsia-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">1. Automatización de Procesos y Estructuras Organizacionales Esbeltas</span>
+                            <span class="text-[10px] font-bold text-fuchsia-800 shrink-0 px-1.5 py-0.5 rounded bg-fuchsia-100">D1,D4/A1,A2 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-fuchsia-50 border border-fuchsia-500 text-slate-900 leading-relaxed">
+                            <strong>1. Automatización de Procesos y Estructuras Organizacionales Esbeltas (D1, D4 / A1, A2):</strong> Sobrevivir a la combinación de altas pretensiones salariales, rotación constante y contracción industrial mediante la digitalización de tareas administrativas y la adopción de estructuras operativas ligeras que requieran menor volumen de personal pero mejor remunerado.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- DA 2 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['D2','A4'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['D2','A4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-fuchsia-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">2. Protocolos de Contingencia Operativa y Bienestar Básico</span>
+                            <span class="text-[10px] font-bold text-fuchsia-800 shrink-0 px-1.5 py-0.5 rounded bg-fuchsia-100">D2/A4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-fuchsia-50 border border-fuchsia-500 text-slate-900 leading-relaxed">
+                            <strong>2. Protocolos de Contingencia Operativa y Bienestar Básico (D2 / A4):</strong> Reducir el impacto del agotamiento laboral y el colapso de servicios públicos periféricos implementando horarios escalonados, jornadas comprimidas (4x3) y asistencia primaria de salud e hidratación dentro de las instalaciones empresariales.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- DA 3 -->
+                      <div
+                        onmouseenter="highlightFoda('central', ['D3','D5','A2','A3'], this)"
+                        onmouseleave="clearFoda('central')"
+                        onclick="toggleStrategyFlip('central', ['D3','D5','A2','A3'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-fuchsia-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">3. Formalización Progresiva de Trabajadores Independientes</span>
+                            <span class="text-[10px] font-bold text-fuchsia-800 shrink-0 px-1.5 py-0.5 rounded bg-fuchsia-100">D3,D5/A2,A3 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-fuchsia-50 border border-fuchsia-500 text-slate-900 leading-relaxed">
+                            <strong>3. Formalización Progresiva de Trabajadores Independientes (D3, D5 / A2, A3):</strong> Mitigar la pérdida de técnicos desplazados hacia la informalidad contratándolos bajo esquemas de servicios profesionales externos (outsourcing técnico especializado) para cubrir vacantes críticas sin asumir cargas fijas insostenibles.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Botón Flecha Derecha (Avanzar a Página 4) -->
+          <button onclick="navigateTo(4)" title="Página siguiente"
+            class="shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white border border-slate-200 shadow-sm hover:bg-emerald-50 hover:border-emerald-400 text-slate-700 hover:text-emerald-800 flex items-center justify-center transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+
+        </div>
+
+        <!-- Reflexión Específica de la Región Central (Debajo de la Matriz) -->
+        <article class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4 leading-relaxed text-sm sm:text-base text-slate-700">
+          <h3 class="serif-title text-lg sm:text-xl font-bold text-slate-900">
+            Reflexión sobre el Descalce Demográfico y Formativo Para la Región Central: Densidad Urbana frente a Obsolescencia Operativa
+          </h3>
+          <p>
+            En el eje Caracas-Maracay-Valencia, la concentración demográfica y la migración interna juvenil mantienen un volumen importante de fuerza de trabajo disponible, pero con un severo descalce técnico-operativo. Mientras el sector terciario de la capital demanda perfiles orientados a las finanzas digitales (<em>fintech</em>), comercio electrónico, análisis de datos, logística de última milla y gestión de servicios corporativos, el eje manufacturero de Carabobo y Aragua enfrenta la jubilación de su generación de maestros industriales sin contar con relevo técnico.
+          </p>
+          <p>
+            En consecuencia, la Región Central no requiere más titulaciones teóricas de larga duración, sino un <strong class="text-slate-900">rediseño educativo basado en el <em>reskilling</em> y <em>upskilling</em> acelerado</strong>:
+          </p>
+          <ul class="list-disc pl-6 space-y-2.5">
+            <li>
+              <strong class="text-slate-900">En el ámbito metropolitano (Caracas):</strong> Ofertas formativas modulares en gestión de servicios digitales, automatización administrativa, atención al cliente bilingüe y gerencia ágil de proyectos que permitan reinsertar formalmente a los profesionales desplazados hacia la informalidad.
+            </li>
+            <li>
+              <strong class="text-slate-900">En el corredor industrial (Maracay-Valencia):</strong> Programas duales de formación técnico-profesional (escuelas de aprendices en planta) enfocados en mecatrónica, mantenimiento predictivo, instrumentación industrial y control de calidad, capaces de cerrar la brecha generacional en el piso de fábrica.
+            </li>
+          </ul>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PÁGINA 4: MATRIZ SITUACIONAL FODA - REGIÓN ANDINA + REFLEXIÓN
+         ========================================== -->
+    <section id="page-4" class="spa-page py-5 px-2 sm:px-4 lg:px-6">
+      <div class="max-w-[1600px] mx-auto space-y-6">
+
+        <div class="text-center max-w-5xl mx-auto space-y-1">
+          <h2 class="serif-title text-lg sm:text-xl lg:text-2xl font-bold text-slate-900">
+            Matriz Situacional FODA Aplicada al Talento Humano: Zona 2: Región Andina (Táchira, Mérida y Trujillo)
+          </h2>
+          <p class="text-[11px] sm:text-xs text-slate-500">
+            Pasa el cursor sobre cualquier estrategia para iluminar sus factores origen • Haz clic en cualquier tarjeta para elevarla y voltearla con el detalle completo
+          </p>
+        </div>
+
+        <!-- Contenedor con Flechas Laterales de Navegación y la Matriz 3x3 Ampliada -->
+        <div class="relative flex items-center gap-1.5 sm:gap-3">
+
+          <!-- Botón Flecha Izquierda (Retroceder a Página 3) -->
+          <button onclick="navigateTo(3)" title="Página anterior"
+            class="shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white border border-slate-200 shadow-sm hover:bg-emerald-50 hover:border-emerald-400 text-slate-700 hover:text-emerald-800 flex items-center justify-center transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+
+          <!-- Matriz FODA 3x3: Región Andina -->
+          <div id="foda-matrix-andina" class="w-full overflow-x-auto rounded-2xl border border-slate-300 bg-white shadow-md">
+            <table class="w-full border-collapse text-left min-w-[980px] table-fixed">
+              <thead>
+                <tr class="border-b border-slate-300">
+                  <!-- Celda Esquina (Fila 1, Columna 1) con foto de Mérida en marca de agua clara -->
+                  <th class="w-[24%] p-4 sm:p-5 relative overflow-hidden bg-slate-100 text-slate-900 align-middle">
+                    <img
+                      src="https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=900&q=80"
+                      alt="Mérida en marca de agua"
+                      class="absolute inset-0 w-full h-full object-cover opacity-85 pointer-events-none scale-105"
+                      onerror="this.style.display='none'"
+                    />
+                    <div class="absolute inset-0 bg-gradient-to-br from-white/75 via-white/60 to-emerald-50/65 pointer-events-none"></div>
+                    <div class="relative z-10 space-y-2.5">
+                      <span class="inline-block px-3 py-1 rounded-lg bg-emerald-800/95 text-white text-base sm:text-xl font-extrabold uppercase tracking-wide shadow-sm">
+                        Zona 2: Región Andina
+                      </span>
+                      <p class="text-2xl sm:text-3xl font-black text-slate-900 leading-tight drop-shadow-[0_1px_2px_rgba(255,255,255,0.95)]">
+                        Táchira, Mérida y Trujillo
+                      </p>
+                    </div>
+                  </th>
+
+                  <!-- Cabecera Columna 2: FORTALEZAS (F) -> Fondo Azul Pálido -->
+                  <th class="w-[38%] p-2.5 sm:p-3.5 bg-sky-100/90 border-l border-sky-200 align-top">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs sm:text-sm font-extrabold text-sky-950 uppercase tracking-wide">
+                        FORTALEZAS (F)
+                      </span>
+                      <span class="text-[10px] font-medium text-sky-800 bg-sky-200/80 px-2 py-0.5 rounded-full">
+                        Clic para voltear
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1.5 text-xs font-normal text-slate-800">
+                      <!-- F1 -->
+                      <div id="andina-F1" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-sky-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1.5">F1</span>
+                              <span class="font-semibold text-slate-800">Sólido capital intelectual, académico y científico.</span>
+                            </div>
+                            <span class="text-[10px] text-sky-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-sky-50 border border-sky-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1">F1</span>
+                            <strong>Sólido capital intelectual, académico y científico:</strong> Presencia histórica de la Universidad de Los Andes (ULA), la Universidad Nacional Experimental del Táchira (UNET) y núcleos regionales que han forjado una masa de profesionales, investigadores y técnicos de rigurosa preparación teórica y metodológica.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- F2 -->
+                      <div id="andina-F2" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-sky-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1.5">F2</span>
+                              <span class="font-semibold text-slate-800">Ética laboral, disciplina y fuerte arraigo identitario.</span>
+                            </div>
+                            <span class="text-[10px] text-sky-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-sky-50 border border-sky-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1">F2</span>
+                            <strong>Ética laboral, disciplina y fuerte arraigo identitario:</strong> La fuerza de trabajo andina se caracteriza culturalmente por altos niveles de responsabilidad, puntualidad, vocación de servicio, estabilidad en el puesto y sentido de pertenencia hacia las instituciones y empresas locales.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- F3 -->
+                      <div id="andina-F3" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-sky-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1.5">F3</span>
+                              <span class="font-semibold text-slate-800">Conocimiento especializado en sectores endógenos.</span>
+                            </div>
+                            <span class="text-[10px] text-sky-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-sky-50 border border-sky-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1">F3</span>
+                            <strong>Conocimiento especializado en sectores endógenos:</strong> Dominio técnico y empírico intergeneracional en agricultura intensiva de tierras altas, agroindustria, ganadería de altura, gastronomía, hospitalidad turística y gestión ambiental/forestal.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- F4 -->
+                      <div id="andina-F4" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-sky-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1.5">F4</span>
+                              <span class="font-semibold text-slate-800">Resiliencia y capacidad de autogestión comunitaria.</span>
+                            </div>
+                            <span class="text-[10px] text-sky-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-sky-50 border border-sky-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1">F4</span>
+                            <strong>Resiliencia y capacidad de autogestión comunitaria:</strong> Habilidad comprobada del talento local para sostener operaciones educativas, comerciales y productivas mediante redes de cooperación familiar y local en contextos de escasez de recursos.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- F5 -->
+                      <div id="andina-F5" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-sky-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1.5">F5</span>
+                              <span class="font-semibold text-slate-800">Menor volatilidad y rotación voluntaria en el empleo.</span>
+                            </div>
+                            <span class="text-[10px] text-sky-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-sky-50 border border-sky-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-sky-700 text-white font-bold text-[10px] mr-1">F5</span>
+                            <strong>Menor volatilidad y rotación voluntaria en el empleo:</strong> Quienes deciden permanecer en la región muestran una mayor lealtad organizacional y permanencia promedio en comparación con el vertiginoso cambio de empleo de la capital.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+
+                  <!-- Cabecera Columna 3: DEBILIDADES (D) -> Fondo Coral / Rosa Pálido -->
+                  <th class="w-[38%] p-2.5 sm:p-3.5 bg-rose-100/90 border-l border-rose-200 align-top">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs sm:text-sm font-extrabold text-rose-950 uppercase tracking-wide">
+                        DEBILIDADES (D)
+                      </span>
+                      <span class="text-[10px] font-medium text-rose-800 bg-rose-200/80 px-2 py-0.5 rounded-full">
+                        Clic para voltear
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1.5 text-xs font-normal text-slate-800">
+                      <!-- D1 -->
+                      <div id="andina-D1" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-rose-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1.5">D1</span>
+                              <span class="font-semibold text-slate-800">Envejecimiento demográfico acelerado de la fuerza laboral.</span>
+                            </div>
+                            <span class="text-[10px] text-rose-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-rose-50 border border-rose-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1">D1</span>
+                            <strong>Envejecimiento demográfico acelerado de la fuerza laboral:</strong> La salida masiva de cohortes jóvenes (18 a 35 años) por pasos fronterizos o hacia el centro del país ha elevado la edad promedio de los trabajadores activos y la tasa de dependencia demográfica regional.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- D2 -->
+                      <div id="andina-D2" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-rose-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1.5">D2</span>
+                              <span class="font-semibold text-slate-800">Vaciado de relevo generacional en oficios y academia.</span>
+                            </div>
+                            <span class="text-[10px] text-rose-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-rose-50 border border-rose-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1">D2</span>
+                            <strong>Vaciado de relevo generacional en oficios y academia:</strong> Despoblación crítica en facultades universitarias, centros de salud y unidades de producción agrícola, dejando a expertos senior sin auxiliares ni sucesores en formación.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- D3 -->
+                      <div id="andina-D3" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-rose-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1.5">D3</span>
+                              <span class="font-semibold text-slate-800">Descalce entre formación tradicional y economía digital.</span>
+                            </div>
+                            <span class="text-[10px] text-rose-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-rose-50 border border-rose-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1">D3</span>
+                            <strong>Descalce entre la formación académica tradicional y la economía digital:</strong> Predominio de perfiles formados bajo esquemas curriculares clásicos o humanísticos, con brechas en habilidades corporativas modernas, automatización, negocios digitales y dominio de idiomas.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- D4 -->
+                      <div id="andina-D4" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-rose-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1.5">D4</span>
+                              <span class="font-semibold text-slate-800">Dependencia de remesas como inhibidor laboral.</span>
+                            </div>
+                            <span class="text-[10px] text-rose-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-rose-50 border border-rose-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1">D4</span>
+                            <strong>Dependencia de las remesas como inhibidor de la oferta laboral:</strong> En numerosos hogares andinos, la recepción periódica de remesas familiares eleva el "salario de reserva", desmotivando la aceptación de empleos formales locales con remuneraciones bajas.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- D5 -->
+                      <div id="andina-D5" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-rose-200/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1.5">D5</span>
+                              <span class="font-semibold text-slate-800">Subempleo estructural y poca experiencia corporativa.</span>
+                            </div>
+                            <span class="text-[10px] text-rose-600 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-rose-50 border border-rose-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-rose-700 text-white font-bold text-[10px] mr-1">D5</span>
+                            <strong>Subempleo estructural y escasez de experiencia corporativa a gran escala:</strong> Al existir pocas grandes industrias, el talento joven local carece de exposición práctica a sistemas organizacionales complejos, estándares internacionales de calidad y gestión de grandes presupuestos.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y divide-slate-300 text-xs">
+                <!-- FILA 2: OPORTUNIDADES (Amarillo) + FO (Verde) + DO (Naranja) -->
+                <tr>
+                  <!-- Cabecera Fila 2: OPORTUNIDADES (O) -> Fondo Amarillo Pálido -->
+                  <th class="p-2.5 sm:p-3.5 bg-amber-100/90 align-top">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs sm:text-sm font-extrabold text-amber-950 uppercase tracking-wide">
+                        OPORTUNIDADES (O)
+                      </span>
+                      <span class="text-[10px] font-medium text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full">
+                        Clic
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1.5 text-xs font-normal text-slate-800">
+                      <!-- O1 -->
+                      <div id="andina-O1" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-amber-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1.5">O1</span>
+                              <span class="font-semibold text-slate-800">Yacimientos de empleo en especialidades territoriales.</span>
+                            </div>
+                            <span class="text-[10px] text-amber-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-amber-50 border border-amber-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1">O1</span>
+                            <strong>Yacimientos de empleo en especialidades territoriales no cubiertas:</strong> Demanda latente de perfiles técnicos en gestión integral de riesgos socionaturales (sismología, geotecnia, control de cuencas), agroecología, biotecnología agrícola, energías limpias y turismo sostenible de salud y naturaleza.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- O2 -->
+                      <div id="andina-O2" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-amber-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1.5">O2</span>
+                              <span class="font-semibold text-slate-800">Reactivación del eje comercial y logístico fronterizo.</span>
+                            </div>
+                            <span class="text-[10px] text-amber-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-amber-50 border border-amber-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1">O2</span>
+                            <strong>Reactivación del eje comercial y logístico transfronterizo:</strong> La apertura e intercambio comercial entre el Táchira y el departamento Norte de Santander (Colombia) impulsa la demanda de talento en aduanas, comercio exterior, logística terrestre y servicios conexos.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- O3 -->
+                      <div id="andina-O3" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-amber-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1.5">O3</span>
+                              <span class="font-semibold text-slate-800">Auge del teletrabajo global como ancla de retención.</span>
+                            </div>
+                            <span class="text-[10px] text-amber-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-amber-50 border border-amber-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1">O3</span>
+                            <strong>Auge del teletrabajo global (remote work) como ancla de retención:</strong> El menor costo relativo de vida en ciudades como Mérida o San Cristóbal, combinado con su calidad ambiental y tranquilidad urbana, permite que jóvenes bilingües y programadores trabajen remotamente para empresas extranjeras sin emigrar.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- O4 -->
+                      <div id="andina-O4" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-amber-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1.5">O4</span>
+                              <span class="font-semibold text-slate-800">Potencial de articulación Universidad-Empresa.</span>
+                            </div>
+                            <span class="text-[10px] text-amber-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-amber-50 border border-amber-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-amber-600 text-white font-bold text-[10px] mr-1">O4</span>
+                            <strong>Potencial de articulación Universidad-Empresa-Comunidad:</strong> Disposición de las universidades regionales (ULA, UNET) para diseñar diplomados, microcredenciales y asesorías técnicas adaptadas a las cámaras de comercio, productores agrícolas y gremios turísticos locales.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+
+                  <!-- Cruce FO (Azul + Amarillo = VERDE CLARO) -->
+                  <td class="p-2.5 sm:p-3.5 border-l border-emerald-200 align-top bg-emerald-100/85 relative overflow-hidden">
+                    <!-- Marca de agua FO -->
+                    <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-end pr-4 opacity-[0.09] text-emerald-950">
+                      <span class="text-7xl sm:text-8xl font-black tracking-tighter">FO</span>
+                    </div>
+                    <div class="relative z-10 space-y-2">
+                      <div class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-950 border-b border-emerald-300/80 pb-1 flex items-center justify-between">
+                        <span>ESTRATEGIAS FO (Atacar)</span>
+                        <span class="text-[10px] font-semibold text-emerald-800">Azul + Amarillo</span>
+                      </div>
+
+                      <!-- FO 1 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['F1','F3','O1','O4'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['F1','F3','O1','O4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-emerald-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">1. Desarrollo de Incubadoras e Institutos de Especialización Endógena</span>
+                            <span class="text-[10px] font-bold text-emerald-700 shrink-0 px-1.5 py-0.5 rounded bg-emerald-100">F1,F3/O1,O4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-emerald-50 border border-emerald-500 text-slate-900 leading-relaxed">
+                            <strong>1. Desarrollo de Incubadoras e Institutos de Especialización Endógena (F1, F3 / O1, O4):</strong> Apalancar el capital científico e intelectual de la ULA y la UNET en alianza con gremios locales para crear programas técnicos y consultorías en gestión de riesgos socionaturales (sismología y geotecnia), biotecnología agrícola, agroindustria de altura y turismo sostenible.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- FO 2 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['F1','F2','F5','O3'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['F1','F2','F5','O3'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-emerald-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">2. Consolidación de Clusters de Talento para Exportación de Servicios Remotos</span>
+                            <span class="text-[10px] font-bold text-emerald-700 shrink-0 px-1.5 py-0.5 rounded bg-emerald-100">F1,F2,F5/O3 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-emerald-50 border border-emerald-500 text-slate-900 leading-relaxed">
+                            <strong>2. Consolidación de Clusters de Talento para Exportación de Servicios Remotos (F1, F2, F5 / O3):</strong> Aprovechar la disciplina laboral, la baja rotación y el nivel académico de la región para formar y certificar jóvenes en tecnología, diseño, soporte corporativo y bilingüismo orientados al teletrabajo global desde ciudades como Mérida y San Cristóbal.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- FO 3 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['F2','F4','O2','O4'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['F2','F4','O2','O4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-emerald-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">3. Profesionalización del Corredor Logístico y Aduanero Fronterizo</span>
+                            <span class="text-[10px] font-bold text-emerald-700 shrink-0 px-1.5 py-0.5 rounded bg-emerald-100">F2,F4/O2,O4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-emerald-50 border border-emerald-500 text-slate-900 leading-relaxed">
+                            <strong>3. Profesionalización del Corredor Logístico y Aduanero Fronterizo (F2, F4 / O2, O4):</strong> Utilizar la resiliencia y capacidad organizativa local para capacitar y certificar personal técnico en comercio exterior, gestión aduanera y logística terrestre en el eje Táchira-Norte de Santander.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Cruce DO (Rojo/Coral + Amarillo = NARANJA CLARO) -->
+                  <td class="p-2.5 sm:p-3.5 border-l border-orange-200 align-top bg-orange-100/85 relative overflow-hidden">
+                    <!-- Marca de agua DO -->
+                    <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-end pr-4 opacity-[0.09] text-orange-950">
+                      <span class="text-7xl sm:text-8xl font-black tracking-tighter">DO</span>
+                    </div>
+                    <div class="relative z-10 space-y-2">
+                      <div class="text-[11px] font-extrabold uppercase tracking-wider text-orange-950 border-b border-orange-300/80 pb-1 flex items-center justify-between">
+                        <span>ESTRATEGIAS DO (Reordenar)</span>
+                        <span class="text-[10px] font-semibold text-orange-800">Rojo + Amarillo</span>
+                      </div>
+
+                      <!-- DO 1 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['D2','D3','O1','O4'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['D2','D3','O1','O4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-orange-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">1. Rediseño Curricular Ágil y Certificaciones por Microcredenciales</span>
+                            <span class="text-[10px] font-bold text-orange-800 shrink-0 px-1.5 py-0.5 rounded bg-orange-100">D2,D3/O1,O4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-orange-50 border border-orange-500 text-slate-900 leading-relaxed">
+                            <strong>1. Rediseño Curricular Ágil y Certificaciones por Microcredenciales (D2, D3 / O1, O4):</strong> Superar el descalce entre la formación académica clásica y el mercado actual mediante alianzas Universidad-Empresa que transformen carreras largas en diplomados intensivos de rápida inserción laboral (tecnologías aplicadas al agro, energías limpias y gestión digital).
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- DO 2 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['D1','D2','O4'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['D1','D2','O4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-orange-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">2. Programas de Relevos Técnicos e Inclusión Laboral Intergeneracional</span>
+                            <span class="text-[10px] font-bold text-orange-800 shrink-0 px-1.5 py-0.5 rounded bg-orange-100">D1,D2/O4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-orange-50 border border-orange-500 text-slate-900 leading-relaxed">
+                            <strong>2. Programas de Relevos Técnicos e Inclusión Laboral Intergeneracional (D1, D2 / O4):</strong> Contrarrestar el envejecimiento demográfico y el vaciado de auxiliares vinculando a estudiantes universitarios desde los primeros semestres en pasantías remuneradas dentro de unidades agropecuarias, clínicas y empresas locales junto a expertos senior.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- DO 3 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['D4','D5','O2','O3'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['D4','D5','O2','O3'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-orange-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">3. Modelos de Compensación Atractivos Vinculados a Economía Digital y Frontera</span>
+                            <span class="text-[10px] font-bold text-orange-800 shrink-0 px-1.5 py-0.5 rounded bg-orange-100">D4,D5/O2,O3 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-orange-50 border border-orange-500 text-slate-900 leading-relaxed">
+                            <strong>3. Modelos de Compensación Atractivos Vinculados a Economía Digital y Frontera (D4, D5 / O2, O3):</strong> Superar el desincentivo laboral provocado por las remesas y la falta de experiencia corporativa conectando al talento local con empresas transfronterizas y plataformas de trabajo remoto que ofrezcan ingresos competitivos por productividad.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- FILA 3: AMENAZAS (Violeta) + FA (Índigo) + DA (Malva/Fucsia) -->
+                <tr>
+                  <!-- Cabecera Fila 3: AMENAZAS (A) -> Fondo Violeta Pálido -->
+                  <th class="p-2.5 sm:p-3.5 bg-purple-100/90 align-top">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs sm:text-sm font-extrabold text-purple-950 uppercase tracking-wide">
+                        AMENAZAS (A)
+                      </span>
+                      <span class="text-[10px] font-medium text-purple-900 bg-purple-200/80 px-2 py-0.5 rounded-full">
+                        Clic
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1.5 text-xs font-normal text-slate-800">
+                      <!-- A1 -->
+                      <div id="andina-A1" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-purple-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1.5">A1</span>
+                              <span class="font-semibold text-slate-800">Aislamiento vial y escasez de combustible.</span>
+                            </div>
+                            <span class="text-[10px] text-purple-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-purple-50 border border-purple-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1">A1</span>
+                            <strong>Aislamiento geográfico por deterioro vial y escasez de combustible:</strong> Las fallas en las troncales andinas (riesgos de derrumbes en lluvias), los altos costos de fletes, la intermitencia de vuelos comerciales y las colas por gasolina o gasoil encarecen la movilidad laboral y asfixian el aparato productivo regional.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- A2 -->
+                      <div id="andina-A2" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-purple-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1.5">A2</span>
+                              <span class="font-semibold text-slate-800">Crisis severa de electricidad y conectividad.</span>
+                            </div>
+                            <span class="text-[10px] text-purple-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-purple-50 border border-purple-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1">A2</span>
+                            <strong>Crisis severa de los servicios públicos básicos (electricidad y conectividad):</strong> Los cortes eléctricos prolongados y las fluctuaciones de voltaje en los estados andinos paralizan jornadas laborales, dañan equipos y expulsan a trabajadores remotos y emprendimientos digitales.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- A3 -->
+                      <div id="andina-A3" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-purple-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1.5">A3</span>
+                              <span class="font-semibold text-slate-800">Asimetría salarial y competencia fronteriza.</span>
+                            </div>
+                            <span class="text-[10px] text-purple-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-purple-50 border border-purple-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1">A3</span>
+                            <strong>Asimetría salarial y competencia laboral fronteriza:</strong> La cercanía geográfica con Colombia incentiva la migración pendular o definitiva de mano de obra calificada (médicos, enfermeros, técnicos, obreros agrícolas) atraída por remuneraciones en moneda más estable.
+                          </div>
+                        </div>
+                      </div>
+                      <!-- A4 -->
+                      <div id="andina-A4" onclick="toggleCardFlip(this, event)" class="foda-flip-card foda-factor-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-2.5 py-1.5 bg-white/90 border border-purple-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <div class="truncate">
+                              <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1.5">A4</span>
+                              <span class="font-semibold text-slate-800">Asfixia presupuestaria de las universidades.</span>
+                            </div>
+                            <span class="text-[10px] text-purple-700 shrink-0 font-bold">↻</span>
+                          </div>
+                          <div class="foda-flip-back p-2.5 bg-purple-50 border border-purple-400 text-slate-900 leading-snug">
+                            <span class="factor-badge inline-block px-1.5 py-0.5 rounded bg-purple-700 text-white font-bold text-[10px] mr-1">A4</span>
+                            <strong>Asfixia presupuestaria de las universidades autónomas y experimentales:</strong> La desinversión estatal en la ULA y la UNET amenaza la sostenibilidad de laboratorios, posgrados e institutos de investigación, poniendo en riesgo la principal fábrica de talento humano de toda la región andina.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+
+                  <!-- Cruce FA (Azul + Violeta = ÍNDIGO CLARO) -->
+                  <td class="p-2.5 sm:p-3.5 border-l border-indigo-200 align-top bg-indigo-100/85 relative overflow-hidden">
+                    <!-- Marca de agua FA -->
+                    <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-end pr-4 opacity-[0.09] text-indigo-950">
+                      <span class="text-7xl sm:text-8xl font-black tracking-tighter">FA</span>
+                    </div>
+                    <div class="relative z-10 space-y-2">
+                      <div class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-950 border-b border-indigo-300/80 pb-1 flex items-center justify-between">
+                        <span>ESTRATEGIAS FA (Defender)</span>
+                        <span class="text-[10px] font-semibold text-indigo-800">Azul + Violeta</span>
+                      </div>
+
+                      <!-- FA 1 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['F1','F4','A2'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['F1','F4','A2'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-indigo-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">1. Creación de Espacios de Coworking con Autonomía Energética y Conectividad</span>
+                            <span class="text-[10px] font-bold text-indigo-800 shrink-0 px-1.5 py-0.5 rounded bg-indigo-100">F1,F4/A2 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-indigo-50 border border-indigo-500 text-slate-900 leading-relaxed">
+                            <strong>1. Creación de Espacios de Coworking con Autonomía Energética y Conectividad (F1, F4 / A2):</strong> Defender la operatividad de los profesionales, investigadores y trabajadores remotos andinos frente a los cortes eléctricos mediante alianzas entre gremios privados y universidades para habilitar centros de trabajo dotados de plantas eléctricas, paneles solares e internet satelital/fibra.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- FA 2 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['F2','F3','A3'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['F2','F3','A3'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-indigo-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">2. Fortalecimiento de la Identidad Corporativa y el Arraigo Local</span>
+                            <span class="text-[10px] font-bold text-indigo-800 shrink-0 px-1.5 py-0.5 rounded bg-indigo-100">F2,F3/A3 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-indigo-50 border border-indigo-500 text-slate-900 leading-relaxed">
+                            <strong>2. Fortalecimiento de la Identidad Corporativa y el Arraigo Local (F2, F3 / A3):</strong> Neutralizar la fuga de mano de obra calificada hacia Colombia apalancando el fuerte sentido de pertenencia andino con ambientes laborales de alto respeto humano, estabilidad contractual, participación en las utilidades y horarios compatibles con la vida familiar.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- FA 3 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['F1','F4','A4'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['F1','F4','A4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-indigo-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">3. Redes de Autogestión y Financiamiento Privado para Laboratorios Universitarios</span>
+                            <span class="text-[10px] font-bold text-indigo-800 shrink-0 px-1.5 py-0.5 rounded bg-indigo-100">F1,F4/A4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-indigo-50 border border-indigo-500 text-slate-900 leading-relaxed">
+                            <strong>3. Redes de Autogestión y Financiamiento Privado para Laboratorios Universitarios (F1, F4 / A4):</strong> Impedir la paralización de la formación de talento en la ULA y la UNET por la asfixia presupuestaria estatal mediante proyectos de investigación aplicada financiados por productores agrícolas, clínicas y cámaras empresariales de la región.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Cruce DA (Rojo/Coral + Violeta = MALVA / FUCSIA CLARO) -->
+                  <td class="p-2.5 sm:p-3.5 border-l border-fuchsia-200 align-top bg-fuchsia-100/85 relative overflow-hidden">
+                    <!-- Marca de agua DA -->
+                    <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-end pr-4 opacity-[0.09] text-fuchsia-950">
+                      <span class="text-7xl sm:text-8xl font-black tracking-tighter">DA</span>
+                    </div>
+                    <div class="relative z-10 space-y-2">
+                      <div class="text-[11px] font-extrabold uppercase tracking-wider text-fuchsia-950 border-b border-fuchsia-300/80 pb-1 flex items-center justify-between">
+                        <span>ESTRATEGIAS DA (Sobrevivir)</span>
+                        <span class="text-[10px] font-semibold text-fuchsia-800">Rojo + Violeta</span>
+                      </div>
+
+                      <!-- DA 1 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['D2','D3','A1','A2','A4'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['D2','D3','A1','A2','A4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-fuchsia-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">1. Digitalización Educativa y Modalidades de Formación Semipresencial</span>
+                            <span class="text-[10px] font-bold text-fuchsia-800 shrink-0 px-1.5 py-0.5 rounded bg-fuchsia-100">D2,D3/A1,A2,A4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-fuchsia-50 border border-fuchsia-500 text-slate-900 leading-relaxed">
+                            <strong>1. Digitalización Educativa y Modalidades de Formación Semipresencial (D2, D3 / A1, A2, A4):</strong> Garantizar la supervivencia de la formación académica y técnica frente a la escasez de combustible, el aislamiento vial y la falta de profesores mediante aulas virtuales asíncronas que no dependan de conexión eléctrica en tiempo real.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- DA 2 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['D1','D5','A1','A3'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['D1','D5','A1','A3'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-fuchsia-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">2. Alianzas Cooperativas y Pool de Talento Compartido para PyMEs</span>
+                            <span class="text-[10px] font-bold text-fuchsia-800 shrink-0 px-1.5 py-0.5 rounded bg-fuchsia-100">D1,D5/A1,A3 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-fuchsia-50 border border-fuchsia-500 text-slate-900 leading-relaxed">
+                            <strong>2. Alianzas Cooperativas y Pool de Talento Compartido para PyMEs (D1, D5 / A1, A3):</strong> Permitir que las pequeñas empresas agroindustriales, comerciales y turísticas andinas sobrevivan a la escasez de jóvenes y a la competencia fronteriza compartiendo especialistas (contadores, ingenieros agrónomos, gestores de calidad) bajo esquemas mancomunados.
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- DA 3 -->
+                      <div
+                        onmouseenter="highlightFoda('andina', ['D1','D2','A3','A4'], this)"
+                        onmouseleave="clearFoda('andina')"
+                        onclick="toggleStrategyFlip('andina', ['D1','D2','A3','A4'], this, event)"
+                        class="foda-flip-card foda-strategy-item">
+                        <div class="foda-flip-inner">
+                          <div class="foda-flip-front px-3 py-2 bg-white/90 border border-fuchsia-300/90 flex items-center justify-between gap-2 shadow-2xs">
+                            <span class="font-semibold text-slate-800">3. Estandarización y Documentación del Conocimiento Crítico</span>
+                            <span class="text-[10px] font-bold text-fuchsia-800 shrink-0 px-1.5 py-0.5 rounded bg-fuchsia-100">D1,D2/A3,A4 ↻</span>
+                          </div>
+                          <div class="foda-flip-back p-3 bg-fuchsia-50 border border-fuchsia-500 text-slate-900 leading-relaxed">
+                            <strong>3. Estandarización y Documentación del Conocimiento Crítico (D1, D2 / A3, A4):</strong> Evitar la pérdida irreparable de saber técnico y académico por envejecimiento o migración mediante la creación urgente de manuales de normas y procedimientos, repositorios digitales y protocolos operativos en empresas e instituciones locales.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Botón Flecha Derecha (Avanzar a Página 5) -->
+          <button onclick="navigateTo(5)" title="Página siguiente"
+            class="shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white border border-slate-200 shadow-sm hover:bg-emerald-50 hover:border-emerald-400 text-slate-700 hover:text-emerald-800 flex items-center justify-center transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+
+        </div>
+
+        <!-- Reflexión Específica de la Región Andina (Debajo de la Matriz) -->
+        <article class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4 leading-relaxed text-sm sm:text-base text-slate-700">
+          <h3 class="serif-title text-lg sm:text-xl font-bold text-slate-900">
+            Reflexión sobre el Descalce Demográfico y Formativo Para la Región Andina: Envejecimiento Poblacional y Vocación Endógena
+          </h3>
+          <p>
+            En el eje Táchira-Mérida-Trujillo, el impacto demográfico es inverso y más crítico en términos de estructura etaria: la emigración sostenida de cohortes jóvenes vació el relevo generacional tanto en las aulas universitarias como en las unidades de producción. Sin embargo, la región conserva un robusto patrimonio intelectual y científico en sus universidades tradicionales (ULA, UNET) y una población con fuerte arraigo local. Mantener en esta zona esquemas curriculares rígidos, de cinco o seis años de duración y orientados a empleos burocráticos tradicionales, agrava la deserción estudiantil y acelera la fuga de talentos.
+          </p>
+          <p>
+            Para mitigar el descalce demográfico y formativo, la oferta académica y el perfil laboral de la Región Andina deben reorientarse hacia el <strong class="text-slate-900">aprovechamiento de sus recursos endógenos y la atención de necesidades territoriales no cubiertas</strong>:
+          </p>
+          <ul class="list-disc pl-6 space-y-2.5">
+            <li>
+              <strong class="text-slate-900">Gestión de riesgos socionaturales y sostenibilidad territorial:</strong> Dada la vulnerabilidad sísmica, geomorfológica e hidroclimática de la cordillera andina, urge formar técnicos y especialistas en geotecnia, manejo integral de cuencas, prevención de desastres, ordenamiento territorial e infraestructura resiliente.
+            </li>
+            <li>
+              <strong class="text-slate-900">Modernización agroindustrial y biotecnología de tierras altas:</strong> La transición demográfica en el campo andino exige sustituir la mano de obra intensiva (hoy escasa por la migración joven) mediante perfiles formados en agricultura de precisión, agrotecnología, mejoramiento genético de semillas, manejo poscosecha y agroecología que eleven el rendimiento productivo con menor esfuerzo físico.
+            </li>
+            <li>
+              <strong class="text-slate-900">Comercio transfronterizo y servicios globales remotos:</strong> Mientras el Táchira demanda perfiles técnicos en aduanas, logística binacional y cadenas de suministro para capitalizar el intercambio con Colombia, ciudades universitarias como Mérida requieren programas cortos de certificación en programación, diseño digital, idiomas y gestión de plataformas (como sistemas e-CRM y asistencia virtual) que permitan a los jóvenes exportar servicios desde su territorio, reteniendo el capital humano joven y dinamizando la economía local.
+            </li>
+          </ul>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PÁGINA 5: CONCLUSIÓN DESDE LA GESTIÓN DEL TALENTO HUMANO
+         ========================================== -->
+    <section id="page-5" class="spa-page py-10 sm:py-16 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-4xl mx-auto">
+        <article class="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 lg:p-14 shadow-sm space-y-6 leading-relaxed text-base sm:text-lg text-slate-700">
+          <h2 class="serif-title text-2xl sm:text-3xl font-bold text-slate-900 pb-4 border-b border-slate-100">
+            Conclusión Desde la Gestión del Talento Humano
+          </h2>
+
+          <p>
+            El análisis comparativo entre la Región Central y la Región Andina pone en evidencia que el denominado "compromiso demográfico" venezolano, caracterizado por el envejecimiento acelerado de la población residente, la interrupción prematura del bono demográfico y la pérdida de capital humano calificado, no se manifiesta de forma homogénea en el territorio nacional.
+          </p>
+
+          <p>
+            Por el contrario, produce una marcada asimetría territorial que profundiza la brecha de habilidades y el descalce laboral cuando las instituciones educativas mantienen ofertas académicas estandarizadas y desconectadas de la realidad productiva de cada región.
+          </p>
+
+          <p class="font-medium text-slate-900 bg-emerald-50/60 border-l-4 border-emerald-600 p-5 rounded-r-xl">
+            En definitiva, superar este descalce formativo y demográfico en Venezuela exige abandonar las políticas laborales y educativas uniformes para adoptar un enfoque de planificación estratégica territorial. Desde la gerencia de recursos humanos y las casas de estudio, la viabilidad del empleo depende de articular las demandas reales de cada entorno geográfico con modelos educativos flexibles (certificaciones por competencias, microcredenciales y modalidades híbridas), acompañados de estrategias de dignificación salarial y bienestar emocional que conviertan la permanencia en cada región en una opción de vida profesionalmente atractiva y sostenible.
+          </p>
+        </article>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER UNIFICADO (Consistente en las 5 páginas) -->
+  <footer class="bg-white border-t border-slate-200/80 py-4 px-4 sm:px-6 lg:px-8 mt-12">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
+      <p class="text-xs sm:text-sm text-slate-600">
+        &copy; Lcda. Adriana C. Gonzalez I. | Maestrante de la Maestría en Administración, Mención Gerencia del Instituto de Investigaciones en Administración (IIA)
+      </p>
+      <img
+        src="https://adrianagonzalez9.wordpress.com/wp-content/uploads/2026/10/logo-iia.jpg"
+        alt="Logo IIA"
+        class="h-6 w-auto object-contain rounded-sm"
+        onerror="this.onerror=null; this.src='https://placehold.co/48x48/f8fafc/0f172a?text=IIA';"
+      />
+    </div>
+  </footer>
+
+  <!-- LÓGICA DE NAVEGACIÓN SPA E INTERACTIVIDADES -->
+  <script>
+    let currentPage = 1;
+    const lockedFodaState = {
+      central: null,
+      andina: null
+    };
+
+    /**
+     * Cambia entre las 5 páginas del SPA aplicando una transición suave de paso de página / desvanecimiento.
+     */
+    function navigateTo(targetPage) {
+      if (targetPage === currentPage) return;
+
+      const currentEl = document.getElementById(`page-${currentPage}`);
+      const nextEl = document.getElementById(`page-${targetPage}`);
+      if (!nextEl) return;
+
+      // Actualizar estado visual de los botones del header
+      updateHeaderNav(targetPage);
+
+      // Desvanecer la página actual
+      if (currentEl) {
+        currentEl.classList.remove('visible-page');
+        setTimeout(() => {
+          currentEl.classList.remove('active-page');
+          // Mostrar y animar la nueva página
+          nextEl.classList.add('active-page');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              nextEl.classList.add('visible-page');
+            });
+          });
+        }, 240);
+      }
+
+      currentPage = targetPage;
+    }
+
+    /**
+     * Resalta el enlace activo en el header minimalista.
+     */
+    function updateHeaderNav(activePage) {
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.getElementById(`nav-btn-${i}`);
+        if (!btn) continue;
+        if (i === activePage) {
+          btn.classList.add('bg-emerald-100/90', 'text-emerald-900', 'font-semibold');
+          btn.classList.remove('text-slate-600');
+        } else {
+          btn.classList.remove('bg-emerald-100/90', 'text-emerald-900', 'font-semibold');
+          btn.classList.add('text-slate-600');
+        }
+      }
+    }
+
+    /**
+     * Ilumina sutilmente los estados correspondientes a la Región Central o Región Andina
+     * en el mapa SVG de Venezuela al pasar el ratón sobre la columna respectiva.
+     */
+    function setMapHighlight(region) {
+      const wrapper = document.getElementById('comparative-map-wrapper');
+      if (!wrapper) return;
+      wrapper.classList.remove('highlight-central', 'highlight-andina');
+      if (region === 'central') {
+        wrapper.classList.add('highlight-central');
+      } else if (region === 'andina') {
+        wrapper.classList.add('highlight-andina');
+      }
+    }
+
+    /**
+     * Hace scroll suave hasta el cuadro de notas al pie de página y resalta la referencia seleccionada.
+     */
+    function scrollToFootnote(num) {
+      const target = document.getElementById(`footnote-${num}`);
+      if (!target) return;
+
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.remove('footnote-highlight');
+      void target.offsetWidth; // Reiniciar animación
+      target.classList.add('footnote-highlight');
+    }
+
+    /**
+     * Ilumina las Fortalezas/Debilidades y Oportunidades/Amenazas que dieron origen a una estrategia FODA.
+     */
+    function highlightFoda(region, factorCodes, strategyEl) {
+      if (lockedFodaState[region] && lockedFodaState[region] !== strategyEl) {
+        return;
+      }
+      applyFodaHighlight(region, factorCodes, strategyEl);
+    }
+
+    function applyFodaHighlight(region, factorCodes, strategyEl) {
+      const matrixContainer = document.getElementById(`foda-matrix-${region}`);
+      if (!matrixContainer) return;
+
+      // Limpiar resaltados previos en esa matriz
+      matrixContainer.querySelectorAll('.foda-factor-item').forEach(el => {
+        el.classList.remove('factor-active');
+      });
+      matrixContainer.querySelectorAll('.foda-strategy-item').forEach(el => {
+        el.classList.remove('strategy-active');
+      });
+
+      matrixContainer.classList.add('matrix-has-selection');
+
+      if (strategyEl) {
+        strategyEl.classList.add('strategy-active');
+      }
+
+      factorCodes.forEach(code => {
+        const factorEl = document.getElementById(`${region}-${code}`);
+        if (factorEl) {
+          factorEl.classList.add('factor-active');
+        }
+      });
+    }
+
+    /**
+     * Limpia el resaltado al retirar el cursor (si no se ha fijado con clic).
+     */
+    function clearFoda(region) {
+      if (lockedFodaState[region]) return;
+      resetFodaMatrix(region);
+    }
+
+    /**
+     * Voltea en 3D cualquier tarjeta de Factor (F, D, O, A) al hacer clic sobre ella.
+     */
+    function toggleCardFlip(cardEl, event) {
+      if (event) event.stopPropagation();
+      cardEl.classList.toggle('is-flipped');
+    }
+
+    /**
+     * Voltea en 3D la tarjeta de Estrategia (FO, DO, FA, DA) al hacer clic y fija/libera el resaltado de sus factores origen.
+     */
+    function toggleStrategyFlip(region, factorCodes, strategyEl, event) {
+      if (event) event.stopPropagation();
+
+      const isCurrentlyFlipped = strategyEl.classList.contains('is-flipped');
+      const matrixContainer = document.getElementById(`foda-matrix-${region}`);
+
+      // Cerrar otras estrategias que estuvieran volteadas en la misma matriz
+      if (matrixContainer) {
+        matrixContainer.querySelectorAll('.foda-strategy-item.is-flipped').forEach(el => {
+          if (el !== strategyEl) el.classList.remove('is-flipped');
+        });
+      }
+
+      if (isCurrentlyFlipped) {
+        strategyEl.classList.remove('is-flipped');
+        lockedFodaState[region] = null;
+        resetFodaMatrix(region);
+      } else {
+        strategyEl.classList.add('is-flipped');
+        lockedFodaState[region] = strategyEl;
+        applyFodaHighlight(region, factorCodes, strategyEl);
+      }
+    }
+
+    function resetFodaMatrix(region) {
+      const matrixContainer = document.getElementById(`foda-matrix-${region}`);
+      if (!matrixContainer) return;
+
+      matrixContainer.classList.remove('matrix-has-selection');
+      matrixContainer.querySelectorAll('.foda-factor-item').forEach(el => {
+        el.classList.remove('factor-active');
+      });
+      matrixContainer.querySelectorAll('.foda-strategy-item').forEach(el => {
+        el.classList.remove('strategy-active');
+      });
+    }
+
+    // Inicializar estado activo del header al cargar
+    window.addEventListener('DOMContentLoaded', () => {
+      updateHeaderNav(1);
+    });
+  </script>
+</body>
+</html>
